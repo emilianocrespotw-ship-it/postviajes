@@ -109,32 +109,82 @@ export default function Home() {
               <p className="text-slate-500 text-xs">Sin tarjeta, empezá a procesar gratis.</p>
             </div>
           ) : (
-            /* RESULTADOS STYLED */
-            <div className="text-left space-y-6 animate-in fade-in zoom-in duration-500">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-4">
-                    <h3 className="text-xl font-bold">{result.destination} <span className="text-slate-500 font-normal">| {result.country}</span></h3>
-                    <button onClick={() => setResult(null)} className="text-xs text-slate-400 hover:text-white underline">Subir otro</button>
+            /* RESULTADOS PROFESIONALES */
+            <div className="text-left space-y-8 animate-in fade-in zoom-in duration-700">
+                <div className="flex justify-between items-end border-b border-slate-800 pb-6">
+                    <div>
+                        <p className="text-indigo-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Destino Detectado</p>
+                        <h3 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                            {result.destination} <span className="text-slate-500 font-light">| {result.country}</span>
+                        </h3>
+                    </div>
+                    <button onClick={() => {setResult(null); setPreview(null)}} className="text-xs text-slate-500 hover:text-indigo-400 transition underline underline-offset-4">
+                        Procesar otro flyer
+                    </button>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700">
-                        <p className="text-[10px] text-indigo-400 font-bold uppercase mb-2">Instagram Post</p>
-                        <p className="text-sm text-slate-300 leading-relaxed italic line-clamp-6">"{result.textInstagram}"</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* CARD FACEBOOK */}
+                    <div className="group relative bg-slate-800/20 border border-slate-700/50 p-5 rounded-2xl hover:bg-slate-800/40 transition">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="flex items-center gap-2 text-[10px] font-bold text-blue-400 uppercase tracking-widest">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.8)]" />
+                                Facebook Post
+                            </span>
+                            <button 
+                                onClick={() => {navigator.clipboard.writeText(result.textFacebook); alert('¡Copiado!')}}
+                                className="text-[10px] bg-slate-700 hover:bg-indigo-600 px-3 py-1 rounded-full transition"
+                            >
+                                Copiar
+                            </button>
+                        </div>
+                        <p className="text-sm text-slate-400 leading-relaxed overflow-y-auto max-h-[200px] scrollbar-hide">
+                            {result.textFacebook}
+                        </p>
                     </div>
-                    <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700">
-                        <p className="text-[10px] text-blue-400 font-bold uppercase mb-2">Facebook Post</p>
-                        <p className="text-sm text-slate-300 leading-relaxed line-clamp-6">"{result.textFacebook}"</p>
+
+                    {/* CARD INSTAGRAM */}
+                    <div className="group relative bg-slate-800/20 border border-slate-700/50 p-5 rounded-2xl hover:bg-slate-800/40 transition">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="flex items-center gap-2 text-[10px] font-bold text-pink-400 uppercase tracking-widest">
+                                <span className="w-1.5 h-1.5 rounded-full bg-pink-400 shadow-[0_0_8px_rgba(244,114,182,0.8)]" />
+                                Instagram Post
+                            </span>
+                            <button 
+                                onClick={() => {navigator.clipboard.writeText(result.textInstagram); alert('¡Copiado!')}}
+                                className="text-[10px] bg-slate-700 hover:bg-indigo-600 px-3 py-1 rounded-full transition"
+                            >
+                                Copiar
+                            </button>
+                        </div>
+                        <p className="text-sm text-slate-400 leading-relaxed overflow-y-auto max-h-[200px] scrollbar-hide">
+                            {result.textInstagram}
+                        </p>
                     </div>
                 </div>
 
-                <div className="space-y-3">
-                    <p className="text-[10px] text-indigo-400 font-bold uppercase">Fotos sugeridas (Pexels)</p>
-                    <div className="grid grid-cols-5 gap-2">
+                {/* GALERÍA PEXELS */}
+                <div className="space-y-4 pt-4">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-[0.2em]">Fotos sugeridas (Pexels)</p>
+                        <span className="text-[10px] text-slate-500 italic">Click para descargar</span>
+                    </div>
+                    <div className="grid grid-cols-5 gap-3">
                         {result.images?.map((url: string, i: number) => (
-                            <img key={i} src={url} className="h-16 w-full object-cover rounded-lg border border-slate-700" />
+                            <a key={i} href={url} target="_blank" rel="noreferrer" className="block group overflow-hidden rounded-xl border border-slate-700 hover:border-indigo-500 transition">
+                                <img src={url} className="h-20 w-full object-cover group-hover:scale-110 transition duration-500" />
+                            </a>
                         ))}
                     </div>
                 </div>
+
+                {/* BOTÓN WHATSAPP COMPARTIR */}
+                <button 
+                  onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Mira este paquete a ${result.destination}: ${result.textFacebook}`)}`)}
+                  className="w-full bg-green-600/10 border border-green-500/30 text-green-400 py-3 rounded-xl hover:bg-green-600/20 transition flex items-center justify-center gap-2 text-sm font-bold"
+                >
+                    Compartir por WhatsApp 💬
+                </button>
             </div>
           )}
         </div>

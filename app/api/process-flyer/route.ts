@@ -29,14 +29,22 @@ export async function POST(req: NextRequest) {
 
     const flyer = JSON.parse((extractionResponse.content[0] as any).text.replace(/```json|```/g, '').trim())
 
-    // PASO 2 — GENERACIÓN DE TEXTOS
+    // PASO 2 — GENERACIÓN DE TEXTOS (Más estricto)
     const textResponse = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20240620',
       max_tokens: 2048,
-      system: 'Sos un community manager rioplatense experto. Respondé SOLO con JSON.',
+      system: 'Sos un community manager rioplatense experto. Respondé SOLO el JSON puro, sin texto antes ni después.',
       messages: [{
         role: 'user',
-        content: `Generá textos para FB e IG basándote en: ${JSON.stringify(flyer)}. Respondé: {"facebook": "...", "instagram": "..."}`
+        content: `Basado en este paquete: ${JSON.stringify(flyer)}, generá:
+        1) Un post de Facebook (extenso, con emojis).
+        2) Un caption de Instagram (más corto + 20 hashtags).
+        
+        Respondé EXACTAMENTE este formato JSON:
+        {
+          "facebook": "texto de fb aquí",
+          "instagram": "texto de ig aquí"
+        }`
       }]
     })
 
