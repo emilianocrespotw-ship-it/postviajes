@@ -6,10 +6,10 @@ const handler = NextAuth({
     FacebookProvider({
       clientId: process.env.FACEBOOK_APP_ID!,
       clientSecret: process.env.FACEBOOK_APP_SECRET!,
-      // Pedimos permisos para ver las páginas y publicar
       authorization: {
         params: {
-          scope: 'email,public_profile,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish',
+          // Quitamos los permisos de IG y Páginas que daban error
+          scope: 'email,public_profile', 
         },
       },
     }),
