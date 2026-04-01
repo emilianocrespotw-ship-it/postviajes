@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Upload, Bot, Image as ImageIcon, Palette, Rocket, CheckCircle2 } from 'lucide-react'
 
 export default function Home() {
   const [loading, setLoading] = useState(false)
@@ -8,45 +9,29 @@ export default function Home() {
   const [result, setResult] = useState<any>(null)
   const [preview, setPreview] = useState<string | null>(null)
 
-  // Función para convertir imagen a Base64
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       const reader = new FileReader()
-      reader.onloadend = () => {
-        setPreview(reader.result as string)
-      }
+      reader.onloadend = () => setPreview(reader.result as string)
       reader.readAsDataURL(file)
     }
   }
 
   const processFlyer = async () => {
     if (!preview) return alert('Por favor, seleccioná una imagen')
-    
     setLoading(true)
-    setResult(null)
-
     try {
-      // Extraemos solo el string base64 puro y el mimeType
       const base64Content = preview.split(',')[1]
       const mimeType = preview.split(';')[0].split(':')[1]
-
       const response = await fetch('/api/process-flyer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageBase64: base64Content,
-          mimeType,
-          extraInfo
-        })
+        body: JSON.stringify({ imageBase64: base64Content, mimeType, extraInfo })
       })
-
       const data = await response.json()
-      if (data.error) throw new Error(data.error)
-      
       setResult(data)
     } catch (error) {
-      console.error(error)
       alert('Error al procesar el flyer')
     } finally {
       setLoading(false)
@@ -54,106 +39,131 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <header className="mb-12 text-center">
-          <h1 className="text-4xl font-bold text-blue-600 mb-2">PostViajes ✨</h1>
-          <p className="text-gray-600 text-lg">Subí tu flyer y generamos los posteos por vos.</p>
-        </header>
+    <div className="min-h-screen bg-[#020617] text-white selection:bg-indigo-500/30">
+      {/* NAVBAR */}
+      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
+        <div className="text-2xl font-bold tracking-tighter">
+          Post <span className="text-indigo-500">Viajes</span>
+        </div>
+        <button className="bg-indigo-600 hover:bg-indigo-700 px-5 py-2 rounded-lg font-medium transition text-sm">
+          Empezar gratis
+        </button>
+      </nav>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* COLUMNA IZQUIERDA: INPUTS */}
-          <section className="bg-white p-6 rounded-xl shadow-sm border">
-            <h2 className="text-xl font-semibold mb-4">1. Cargá el Flyer</h2>
-            
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleFileChange}
-              className="w-full p-2 border rounded mb-4"
-            />
-
-            {preview && (
-              <img src={preview} alt="Preview" className="w-full h-48 object-cover rounded mb-4" />
-            )}
-
-            <label className="block text-sm font-medium text-gray-700 mb-1">Información Extra (opcional)</label>
-            <textarea 
-              placeholder="Ej: Promo válida solo por hoy, incluye traslado gratis..."
-              className="w-full p-3 border rounded-lg h-24 mb-4 text-black"
-              value={extraInfo}
-              onChange={(e) => setExtraInfo(e.target.value)}
-            />
-
-            <button 
-              onClick={processFlyer}
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition disabled:bg-gray-400"
-            >
-              {loading ? 'Procesando con IA... ⏳' : '¡Generar Posteos! 🚀'}
-            </button>
-          </section>
-
-          {/* COLUMNA DERECHA: RESULTADOS */}
-          <section className="bg-white p-6 rounded-xl shadow-sm border min-h-[300px]">
-            <h2 className="text-xl font-semibold mb-4">2. Resultados</h2>
-            
-            {!result && !loading && (
-              <div className="flex items-center justify-center h-48 text-gray-400 italic">
-                Aparecerán los textos aquí una vez procesado.
-              </div>
-            )}
-
-            {loading && (
-              <div className="space-y-4 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-24 bg-gray-200 rounded"></div>
-                <div className="h-24 bg-gray-200 rounded"></div>
-              </div>
-            )}
-
-            {result && (
-              <div className="space-y-6 animate-in fade-in duration-500">
-                <div>
-                  <h3 className="font-bold text-blue-500 uppercase text-sm">Destino Detectado:</h3>
-                  <p className="text-lg font-medium text-black">{result.destination} - {result.country}</p>
-                </div>
-
-                <div className="p-3 bg-blue-50 rounded border border-blue-100">
-                  <h4 className="font-bold text-xs mb-1 text-blue-600 uppercase">Facebook Post:</h4>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{result.textFacebook}</p>
-                </div>
-
-                <div className="p-3 bg-pink-50 rounded border border-pink-100">
-                  <h4 className="font-bold text-xs mb-1 text-pink-600 uppercase">Instagram Caption:</h4>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{result.textInstagram}</p>
-                </div>
-              </div>
-            )}
-          </section>
+      {/* HERO SECTION */}
+      <main className="max-w-4xl mx-auto pt-20 pb-12 text-center px-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-xs font-medium mb-8">
+          <span className="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
+          Herramienta de social media con IA para agencias de viajes
         </div>
 
-        {/* SECCIÓN IMÁGENES PEXELS */}
-        {result?.images && (
-          <section className="mt-12">
-            <h2 className="text-2xl font-bold mb-6">📸 Fotos sugeridas de Pexels</h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {result.images.map((img: any, idx: number) => (
-                <div key={idx} className="group relative overflow-hidden rounded-lg">
-                  <img 
-                    src={img.url} 
-                    alt={img.alt} 
-                    className="h-40 w-full object-cover transform transition group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                    <a href={img.url} target="_blank" className="text-white text-xs underline">Ver original</a>
-                  </div>
+        <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent">
+          De flyer a post publicado <br /> en segundos
+        </h1>
+        
+        <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-10">
+          Subís el flyer del paquete. La IA lee la imagen, detecta el destino, genera el texto y buscamos fotos de apoyo. Sin copiar, sin pegar.
+        </p>
+
+        {/* HERRAMIENTA DE CARGA */}
+        <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-3xl backdrop-blur-xl shadow-2xl max-w-2xl mx-auto relative overflow-hidden group">
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-600/20 blur-3xl rounded-full group-hover:bg-indigo-600/30 transition duration-500" />
+          
+          {!result ? (
+            <div className="space-y-6">
+              <div className="relative group/input">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileChange}
+                  className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                />
+                <div className="border-2 border-dashed border-slate-700 group-hover/input:border-indigo-500/50 rounded-2xl p-12 transition bg-slate-800/30">
+                  {preview ? (
+                    <img src={preview} className="max-h-48 mx-auto rounded-lg shadow-xl" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-4 text-slate-400">
+                      <Upload className="w-12 h-12 text-indigo-500" />
+                      <p className="font-medium text-lg text-white">Arrastrá tu flyer aquí</p>
+                      <p className="text-sm text-slate-500 italic">JPG, PNG o PDF de tu paquete</p>
+                    </div>
+                  )}
                 </div>
-              ))}
+              </div>
+
+              <textarea 
+                placeholder="Información extra (opcional)..."
+                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm focus:outline-none focus:border-indigo-500 transition"
+                value={extraInfo}
+                onChange={(e) => setExtraInfo(e.target.value)}
+              />
+
+              <button 
+                onClick={processFlyer}
+                disabled={loading}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.4)] text-white font-bold py-4 rounded-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                {loading ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" /> : <Rocket className="w-5 h-5" />}
+                {loading ? 'Procesando flyer...' : '¡Generar Posteos y buscar fotos! →'}
+              </button>
+              <p className="text-slate-500 text-xs">Sin tarjeta, empezá a procesar gratis.</p>
             </div>
-          </section>
-        )}
+          ) : (
+            /* RESULTADOS STYLED */
+            <div className="text-left space-y-6 animate-in fade-in zoom-in duration-500">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+                    <h3 className="text-xl font-bold">{result.destination} <span className="text-slate-500 font-normal">| {result.country}</span></h3>
+                    <button onClick={() => setResult(null)} className="text-xs text-slate-400 hover:text-white underline">Subir otro</button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700">
+                        <p className="text-[10px] text-indigo-400 font-bold uppercase mb-2">Instagram Post</p>
+                        <p className="text-sm text-slate-300 leading-relaxed italic line-clamp-6">"{result.textInstagram}"</p>
+                    </div>
+                    <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-700">
+                        <p className="text-[10px] text-blue-400 font-bold uppercase mb-2">Facebook Post</p>
+                        <p className="text-sm text-slate-300 leading-relaxed line-clamp-6">"{result.textFacebook}"</p>
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    <p className="text-[10px] text-indigo-400 font-bold uppercase">Fotos sugeridas (Pexels)</p>
+                    <div className="grid grid-cols-5 gap-2">
+                        {result.images?.map((url: string, i: number) => (
+                            <img key={i} src={url} className="h-16 w-full object-cover rounded-lg border border-slate-700" />
+                        ))}
+                    </div>
+                </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* CÓMO FUNCIONA */}
+      <section className="max-w-7xl mx-auto px-6 py-24">
+        <h2 className="text-2xl font-bold text-center mb-16">Cómo funciona</h2>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <FeatureCard step="PASO 1" title="Subís el flyer" desc="JPG, PNG o PDF que te dio tu mayorista." Icon={Upload} />
+          <FeatureCard step="PASO 2" title="La IA lee todo" desc="Detecta destino, precio, hotel y servicios." Icon={Bot} />
+          <FeatureCard step="PASO 3" title="Elegís la imagen" desc="Traemos fotos HD reales del destino." Icon={ImageIcon} />
+          <FeatureCard step="PASO 4" title="Elegís el estilo" desc="Entusiasta, profesional o divertido." Icon={Palette} />
+          <FeatureCard step="PASO 5" title="Publicás" desc="Directo a Facebook e Instagram sin copiar." Icon={Rocket} />
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function FeatureCard({ step, title, desc, Icon }: any) {
+  return (
+    <div className="bg-slate-900/40 border border-slate-800/50 p-6 rounded-2xl text-center group hover:border-indigo-500/30 transition">
+      <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition duration-300">
+        <Icon className="w-6 h-6 text-indigo-500" />
       </div>
-    </main>
+      <p className="text-indigo-400 text-[10px] font-bold mb-1">{step}</p>
+      <h4 className="font-bold mb-2 text-sm">{title}</h4>
+      <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+    </div>
   )
 }
