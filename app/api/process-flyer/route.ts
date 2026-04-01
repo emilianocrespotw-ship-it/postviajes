@@ -2,90 +2,74 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabase } from '@/lib/supabase'
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-})
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+
+// Función para limpiar JSON sucio que pueda mandar la IA
+function cleanJSON(text: string) {
+  try {
+    const match = text.match(/\{[\s\S]*\}/);
+    return match ? JSON.parse(match[0]) : JSON.parse(text);
+  } catch (e) {
+    console.error("Error limpiando JSON:", text);
+    throw new Error("La IA no devolvió un formato válido.");
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { imageBase64, mimeType = 'image/jpeg', extraInfo = '' } = body
-
+    const { imageBase64, mimeType = 'image/jpeg', extraInfo = '' } = await req.json()
     if (!imageBase64) return NextResponse.json({ error: 'Falta la imagen' }, { status: 400 })
 
-    // PASO 1 — EXTRACCIÓN (Claude 3.5)
+    console.log("--- PASO 1: Extrayendo datos del flyer ---");
     const extractionResponse = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20240620',
       max_tokens: 1024,
-      system: 'Sos un extractor de datos de viajes. Respondé SIEMPRE con JSON válido.',
+      system: 'Sos un extractor de datos de viajes. Respondé SOLO con JSON puro.',
       messages: [{
         role: 'user',
         content: [
           { type: 'image', source: { type: 'base64', media_type: mimeType as any, data: imageBase64 } },
-          { type: 'text', text: 'Extraé la info en JSON con destination, country, price, dates, hotel, includes (array), y un searchQuery (en inglés).' }
+          { type: 'text', text: 'Extraé en JSON: destination, country, price, dates, hotel, includes (array), y searchQuery (en inglés).' }
         ]
       }]
     })
+    const flyer = cleanJSON((extractionResponse.content[0] as any).text);
 
-    const flyer = JSON.parse((extractionResponse.content[0] as any).text.replace(/```json|```/g, '').trim())
-
-    // PASO 2 — GENERACIÓN DE TEXTOS (Más estricto)
+    console.log("--- PASO 2: Generando textos para redes ---");
     const textResponse = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20240620',
       max_tokens: 2048,
-      system: 'Sos un community manager rioplatense experto. Respondé SOLO el JSON puro, sin texto antes ni después.',
+      system: 'Sos un community manager rioplatense. Respondé SOLO con JSON: {"facebook": "...", "instagram": "..."}',
       messages: [{
         role: 'user',
-        content: `Basado en este paquete: ${JSON.stringify(flyer)}, generá:
-        1) Un post de Facebook (extenso, con emojis).
-        2) Un caption de Instagram (más corto + 20 hashtags).
-        
-        Respondé EXACTAMENTE este formato JSON:
-        {
-          "facebook": "texto de fb aquí",
-          "instagram": "texto de ig aquí"
-        }`
+        content: `Generá posteos para: ${JSON.stringify(flyer)}`
       }]
     })
+    const texts = cleanJSON((textResponse.content[0] as any).text);
 
-    const texts = JSON.parse((textResponse.content[0] as any).text.replace(/```json|```/g, '').trim())
-
-    // PASO 3 — BÚSQUEDA DE IMÁGENES (Pexels)
-    let suggestedImages = []
+    console.log("--- PASO 3: Buscando imágenes en Pexels ---");
+    let images = []
     try {
       const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(flyer.searchQuery)}&per_page=5`, {
         headers: { Authorization: process.env.PEXELS_API_KEY! }
       })
-      const pexelsData = await pexelsRes.json()
-      suggestedImages = pexelsData.photos?.map((p: any) => p.src.large) || []
-    } catch (err) { console.error("Error Pexels:", err) }
+      const data = await pexelsRes.json()
+      images = data.photos?.map((p: any) => p.src.large) || []
+    } catch (e) { console.error("Error Pexels", e) }
 
-    // PASO 4 — GUARDAR EN SUPABASE 🆕
-    const { error: dbError } = await supabase
-      .from('flyers')
-      .insert([{
-        destination: flyer.destination,
-        country: flyer.country,
-        price: flyer.price,
-        dates: flyer.dates,
-        hotel: flyer.hotel,
-        includes: flyer.includes,
-        text_facebook: texts.facebook,
-        text_instagram: texts.instagram,
-        image_url: suggestedImages[0] || null
-      }])
+    // GUARDAR EN SUPABASE
+    await supabase.from('flyers').insert([{
+      destination: flyer.destination,
+      country: flyer.country,
+      text_facebook: texts.facebook,
+      text_instagram: texts.instagram,
+      image_url: images[0]
+    }])
 
-    if (dbError) console.error("Error Supabase:", dbError)
-
-    return NextResponse.json({
-      ...flyer,
-      textFacebook: texts.facebook,
-      textInstagram: texts.instagram,
-      images: suggestedImages
-    })
+    return NextResponse.json({ ...flyer, textFacebook: texts.facebook, textInstagram: texts.instagram, images })
 
   } catch (error: any) {
-    console.error('Error:', error)
+    console.error("ERROR GENERAL:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
