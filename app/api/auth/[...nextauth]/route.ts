@@ -1,38 +1,34 @@
-import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
+import NextAuth, { NextAuthOptions } from 'next-auth'
+import FacebookProvider from 'next-auth/providers/facebook'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
-
-export async function POST(req: NextRequest) {
-  try {
-    const { imageBase64, style = 'Standard' } = await req.json()
-    
-    // 1. IA analiza y genera textos según el ESTILO elegido
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20240620',
-      max_tokens: 2048,
-      system: `Sos un experto en marketing de viajes. Estilo solicitado: ${style}. Respondé SOLO JSON puro.`,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
-          { type: 'text', text: 'Analizá el flyer y generá: 1) destination, 2) fbText (emotivo, largo), 3) igText (con hashtags), 4) searchKeywords (3 palabras en inglés para fotos).' }
-        ]
-      }]
-    })
-
-    const rawText = (response.content[0] as any).text
-    const data = JSON.parse(rawText.match(/\{[\s\S]*\}/)[0])
-
-    // 2. Buscamos 10 opciones de imágenes en Pexels
-    const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(data.searchKeywords)}&per_page=10`, {
-      headers: { Authorization: process.env.PEXELS_API_KEY! }
-    })
-    const pexelsData = await pexelsRes.json()
-    const images = pexelsData.photos?.map((p: any) => p.src.large) || []
-
-    return NextResponse.json({ ...data, images })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+export const authOptions: NextAuthOptions = {
+  providers: [
+    FacebookProvider({
+      clientId: process.env.FACEBOOK_APP_ID!,
+      clientSecret: process.env.FACEBOOK_APP_SECRET!,
+      authorization: {
+        params: {
+          scope: 'email,pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish',
+        },
+      },
+    }),
+  ],
+  callbacks: {
+    async jwt({ token, account }) {
+      if (account) {
+        token.accessToken = account.access_token
+        token.userId = account.providerAccountId
+      }
+      return token
+    },
+    async session({ session, token }) {
+      session.accessToken = token.accessToken as string
+      session.userId = token.userId as string
+      return session
+    },
+  },
+  secret: process.env.NEXTAUTH_SECRET,
 }
+
+const handler = NextAuth(authOptions)
+export { handler as GET, handler as POST }
