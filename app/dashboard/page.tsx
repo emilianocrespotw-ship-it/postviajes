@@ -148,4 +148,4 @@ function Step({ active, icon: Icon, step, title }: any) {
       <h4 className="font-bold text-sm">{title}</h4>
     </div>
   )
-}
+} 
