@@ -8,15 +8,13 @@ const handler = NextAuth({
       clientSecret: process.env.FACEBOOK_APP_SECRET!,
       authorization: {
         params: {
-          // Quitamos los permisos de IG y Páginas que daban error
-          scope: 'email,public_profile', 
+          scope: 'email,public_profile', // SOLO ESTOS DOS, nada más.
         },
       },
     }),
   ],
   callbacks: {
     async jwt({ token, account }) {
-      // Guardamos el token de Facebook para usarlo después para publicar
       if (account) {
         token.accessToken = account.access_token
       }
