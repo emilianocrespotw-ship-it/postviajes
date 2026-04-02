@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 /**
  * GET /api/suggest-images?q=Aruba+Caribe+travel
  *
- * Busca 10 fotos del destino via Pexels API.
- * Retorna array de { url, thumbnail, photographer, source }.
+ * Busca fotos en Pexels y Unsplash en paralelo.
+ * Retorna array de { id, url, thumbnail, photographer, source }.
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -14,38 +14,55 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Falta el parámetro q' }, { status: 400 })
   }
 
-  try {
-    const response = await fetch(
-      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=10&orientation=landscape`,
-      {
-        headers: {
-          Authorization: process.env.PEXELS_API_KEY!,
-        },
-      }
-    )
+  const [pexelsImages, unsplashImages] = await Promise.allSettled([
+    fetchPexels(query),
+    fetchUnsplash(query),
+  ])
 
-    if (!response.ok) {
-      throw new Error(`Pexels API error: ${response.status}`)
-    }
+  const images = [
+    ...(pexelsImages.status === 'fulfilled' ? pexelsImages.value : []),
+    ...(unsplashImages.status === 'fulfilled' ? unsplashImages.value : []),
+  ]
 
-    const data = await response.json()
-
-    const images = data.photos.map((photo: any) => ({
-      id: photo.id,
-      url: photo.src.large2x,   // URL de alta resolución para publicar
-      thumbnail: photo.src.medium, // Miniatura para mostrar en la UI
-      photographer: photo.photographer,
-      photographerUrl: photo.photographer_url,
-      source: 'Pexels',
-    }))
-
-    return NextResponse.json({ images })
-
-  } catch (error: any) {
-    console.error('Error en /api/suggest-images:', error)
-    return NextResponse.json(
-      { error: error.message || 'Error buscando imágenes' },
-      { status: 500 }
-    )
+  if (images.length === 0) {
+    return NextResponse.json({ error: 'No se encontraron imágenes' }, { status: 500 })
   }
+
+  return NextResponse.json({ images })
+}
+
+async function fetchPexels(query: string) {
+  const res = await fetch(
+    `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape`,
+    { headers: { Authorization: process.env.PEXELS_API_KEY! } }
+  )
+  if (!res.ok) throw new Error(`Pexels error: ${res.status}`)
+  const data = await res.json()
+  return (data.photos || []).map((photo: any) => ({
+    id: `pexels-${photo.id}`,
+    url: photo.src.large2x,
+    thumbnail: photo.src.medium,
+    photographer: photo.photographer,
+    photographerUrl: photo.photographer_url,
+    source: 'Pexels',
+  }))
+}
+
+async function fetchUnsplash(query: string) {
+  const key = process.env.UNSPLASH_ACCESS_KEY
+  if (!key) return []
+  const res = await fetch(
+    `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape`,
+    { headers: { Authorization: `Client-ID ${key}` } }
+  )
+  if (!res.ok) throw new Error(`Unsplash error: ${res.status}`)
+  const data = await res.json()
+  return (data.results || []).map((photo: any) => ({
+    id: `unsplash-${photo.id}`,
+    url: photo.urls.full,
+    thumbnail: photo.urls.small,
+    photographer: photo.user.name,
+    photographerUrl: photo.user.links.html,
+    source: 'Unsplash',
+  }))
 }
