@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     console.log('--- PASO 1: Extrayendo datos del flyer ---')
     const extractionResponse = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-latest',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       system: 'Sos un extractor de datos de viajes. Respondé SOLO con JSON puro.',
       messages: [
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     console.log('--- PASO 2: Generando textos para redes ---')
     const textResponse = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-latest',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 2048,
       system:
         'Sos un community manager rioplatense. Respondé SOLO con JSON: {"facebook": "...", "instagram": "..."}',
@@ -95,20 +95,4 @@ export async function POST(req: NextRequest) {
           text_facebook: texts.facebook,
           text_instagram: texts.instagram,
           image_url: images[0] || null
-        }
-      ])
-    } catch (e) {
-      console.warn('Supabase: error al guardar', e)
-    }
-
-    return NextResponse.json({
-      ...flyer,
-      textFacebook: texts.facebook,
-      textInstagram: texts.instagram,
-      images
-    })
-  } catch (error: any) {
-    console.error('ERROR GENERAL:', error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-}
+   
