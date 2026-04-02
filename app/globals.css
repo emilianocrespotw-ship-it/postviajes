@@ -12,7 +12,31 @@ body {
   background: rgb(var(--background-rgb));
 }
 
-/* Loader animado */
+/* ── Animaciones de transición entre pasos ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(-28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fade-up    { animation: fadeInUp    0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-fade-left  { animation: fadeInLeft  0.35s cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-fade-right { animation: fadeInRight 0.35s cubic-bezier(0.16,1,0.3,1) forwards; }
+
+/* ── Loader ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .loader {
   width: 48px;
   height: 48px;
@@ -20,19 +44,4 @@ body {
   border-top-color: #6366f1;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Step indicator */
-.step-active {
-  @apply bg-indigo-600 text-white;
-}
-.step-done {
-  @apply bg-green-500 text-white;
-}
-.step-pending {
-  @apply bg-gray-200 text-gray-500;
 }
