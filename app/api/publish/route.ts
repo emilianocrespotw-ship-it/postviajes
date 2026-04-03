@@ -5,24 +5,39 @@ import { authOptions } from '@/lib/auth'
 export async function POST(req: NextRequest) {
   const session: any = await getServerSession(authOptions)
   if (!session?.accessToken) {
-    return NextResponse.json({ error: 'No autenticado. Conectá tu cuenta de Facebook primero.' }, { status: 401 })
+    return NextResponse.json({
+      error: 'No autenticado. Conectá tu cuenta de Facebook primero.',
+      code: 'NOT_AUTHENTICATED',
+    }, { status: 401 })
   }
 
   try {
     const { imageUrl, textFacebook, textInstagram } = await req.json()
 
     if (!imageUrl || !textFacebook) {
-      return NextResponse.json({ error: 'Faltan datos: imageUrl y textFacebook son requeridos.' }, { status: 400 })
+      return NextResponse.json({
+        error: 'Faltan datos: imageUrl y textFacebook son requeridos.',
+      }, { status: 400 })
     }
 
-    // 1. Obtener las páginas de Facebook del usuario
+    // 1. Obtener páginas de Facebook del usuario
     const pagesRes = await fetch(
-      `https://graph.facebook.com/v21.0/me/accounts?access_token=${session.accessToken}`
+      `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${session.accessToken}`
     )
     const pagesData = await pagesRes.json()
 
+    if (pagesData.error) {
+      return NextResponse.json({
+        error: `Error de Facebook: ${pagesData.error.message}`,
+        code: 'FB_TOKEN_ERROR',
+      }, { status: 401 })
+    }
+
     if (!pagesData.data || pagesData.data.length === 0) {
-      return NextResponse.json({ error: 'No se encontraron páginas de Facebook vinculadas a tu cuenta.' }, { status: 404 })
+      return NextResponse.json({
+        error: 'Tu cuenta de Facebook no tiene páginas de empresa vinculadas. Para publicar necesitás ser administrador de una Página de Facebook.',
+        code: 'NO_PAGES',
+      }, { status: 404 })
     }
 
     const page = pagesData.data[0]
@@ -54,9 +69,8 @@ export async function POST(req: NextRequest) {
       errors.push(`Facebook: ${e.message}`)
     }
 
-    // 3. Publicar en Instagram (si la página tiene IG conectado)
+    // 3. Publicar en Instagram (si la página tiene IG vinculado)
     try {
-      // Buscar cuenta de Instagram Business vinculada a la página
       const igAccountRes = await fetch(
         `https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${pageToken}`
       )
@@ -64,7 +78,6 @@ export async function POST(req: NextRequest) {
       const igAccountId = igAccountData.instagram_business_account?.id
 
       if (igAccountId) {
-        // Paso 1: Crear container de media
         const containerRes = await fetch(`https://graph.facebook.com/v21.0/${igAccountId}/media`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -77,7 +90,6 @@ export async function POST(req: NextRequest) {
         const containerData = await containerRes.json()
 
         if (containerData.id) {
-          // Paso 2: Publicar el container
           const publishRes = await fetch(`https://graph.facebook.com/v21.0/${igAccountId}/media_publish`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -94,7 +106,6 @@ export async function POST(req: NextRequest) {
           }
         }
       }
-      // Si no tiene IG vinculado, simplemente no publicamos en IG (sin error)
     } catch (e: any) {
       errors.push(`Instagram: ${e.message}`)
     }
@@ -107,6 +118,7 @@ export async function POST(req: NextRequest) {
       success: true,
       fbPostId,
       igPostId,
+      pageName: page.name,
       errors: errors.length > 0 ? errors : undefined,
     })
 
