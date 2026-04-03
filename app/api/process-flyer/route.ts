@@ -14,6 +14,14 @@ function cleanJSON(text: string) {
   }
 }
 
+/** Garantiza que un valor sea siempre un string plano */
+function toStr(val: unknown): string {
+  if (val === null || val === undefined) return ''
+  if (typeof val === 'string') return val
+  if (typeof val === 'object') return JSON.stringify(val)
+  return String(val)
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { imageBase64, mimeType = 'image/jpeg' } = await req.json()
@@ -21,11 +29,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Falta la imagen' }, { status: 400 })
     }
 
+    // ── PASO 1: Extraer datos del flyer con tipos explícitos ──────────────────
     console.log('--- PASO 1: Extrayendo datos del flyer ---')
     const extractionResponse = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
-      system: 'Sos un extractor de datos de viajes. Respondé SOLO con JSON puro.',
+      system: `Sos un extractor de datos de flyers de viajes. Respondé SOLO con JSON puro, sin texto adicional.
+Todos los valores deben ser strings simples (NO objetos, NO arrays anidados).
+Formato EXACTO:
+{
+  "destination": "nombre de la ciudad o destino (ej: Buzios, Aruba, Cancun)",
+  "country": "nombre del país",
+  "price": "precio por persona como string (ej: USD 1700 por persona)",
+  "dates": "fechas del viaje como string (ej: 02/01/2026 al 09/01/2026)",
+  "nights": "cantidad de noches como string (ej: 7)",
+  "hotel": "nombre del hotel principal",
+  "includes": ["item1", "item2", "item3"],
+  "searchQuery": "destination name in English for photo search (1-3 words, ONLY the place name, ej: Aruba beach)"
+}
+IMPORTANTE:
+- "price" debe ser SOLO el precio por persona (string simple, ej: "USD 1700 por persona")
+- "includes" debe ser un array de strings cortos
+- "searchQuery" debe ser SOLO el nombre del destino en inglés`,
       messages: [{
         role: 'user',
         content: [
@@ -35,7 +60,7 @@ export async function POST(req: NextRequest) {
           },
           {
             type: 'text',
-            text: 'Extraé en JSON: destination, country, price, dates, hotel, includes (array), y searchQuery (en inglés).'
+            text: 'Extraé los datos de este flyer de viajes. Respondé SOLO con el JSON indicado.'
           }
         ]
       }]
@@ -43,24 +68,50 @@ export async function POST(req: NextRequest) {
 
     const flyer = cleanJSON((extractionResponse.content[0] as any).text)
 
+    // ── PASO 2: Generar textos para redes con formato obligatorio ─────────────
     console.log('--- PASO 2: Generando textos para redes ---')
+
+    // Preparar un resumen limpio para el prompt de generación
+    const includes = Array.isArray(flyer.includes)
+      ? flyer.includes.map(toStr).join(' / ')
+      : toStr(flyer.includes)
+    const flyerSummary = [
+      `Destino: ${toStr(flyer.destination)}`,
+      flyer.country ? `País: ${toStr(flyer.country)}` : '',
+      flyer.dates   ? `Fechas: ${toStr(flyer.dates)}`  : '',
+      flyer.nights  ? `Noches: ${toStr(flyer.nights)}`  : '',
+      flyer.hotel   ? `Hotel: ${toStr(flyer.hotel)}`   : '',
+      includes      ? `Incluye: ${includes}`            : '',
+      flyer.price   ? `Precio: ${toStr(flyer.price)}`  : '',
+    ].filter(Boolean).join('\n')
+
     const textResponse = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2048,
-      system: 'Sos un community manager rioplatense. Respondé SOLO con JSON: {"facebook": "...", "instagram": "..."}',
+      system: `Sos un community manager rioplatense de una agencia de viajes.
+Respondé SOLO con JSON: {"facebook": "...", "instagram": "..."}
+Cada texto DEBE incluir obligatoriamente (en este orden):
+1. Emoji llamativo + nombre del destino en mayúsculas
+2. Las fechas de viaje
+3. Lista de qué incluye (con emojis)
+4. El precio por persona destacado
+5. Call to action con emoji
+Estilo: rioplatense, entusiasta, emojis moderados, máximo 200 palabras por red.`,
       messages: [{
         role: 'user',
-        content: `Generá posteos para: ${JSON.stringify(flyer)}`
+        content: `Generá los textos para este paquete:\n${flyerSummary}`
       }]
     })
 
     const texts = cleanJSON((textResponse.content[0] as any).text)
 
+    // ── PASO 3: Imágenes de Pexels (backup, el carousel usa suggest-images) ──
     console.log('--- PASO 3: Buscando imágenes en Pexels ---')
     let images: string[] = []
     try {
+      const searchQ = toStr(flyer.searchQuery) || toStr(flyer.destination)
       const pexelsRes = await fetch(
-        `https://api.pexels.com/v1/search?query=${encodeURIComponent(flyer.searchQuery)}&per_page=5`,
+        `https://api.pexels.com/v1/search?query=${encodeURIComponent(searchQ)}&per_page=5`,
         { headers: { Authorization: process.env.PEXELS_API_KEY! } }
       )
       const data = await pexelsRes.json()
@@ -69,42 +120,31 @@ export async function POST(req: NextRequest) {
       console.error('Error Pexels', e)
     }
 
-    // Guardar en Supabase (opcional, no bloquea si falla)
+    // ── Guardar en Supabase (opcional) ────────────────────────────────────────
     try {
       await supabase.from('flyers').insert([{
-        destination: flyer.destination,
-        country: flyer.country,
-        text_facebook: texts.facebook,
-        text_instagram: texts.instagram,
+        destination: toStr(flyer.destination),
+        country: toStr(flyer.country),
+        text_facebook: toStr(texts.facebook),
+        text_instagram: toStr(texts.instagram),
         image_url: images[0] || null
       }])
     } catch (e) {
       console.warn('Supabase: error al guardar', e)
     }
 
-    // Ensure texts are always plain strings, even if the model returns objects
-    const textFacebook = typeof texts.facebook === 'string'
-      ? texts.facebook
-      : texts.facebook
-        ? JSON.stringify(texts.facebook)
-        : ''
-    const textInstagram = typeof texts.instagram === 'string'
-      ? texts.instagram
-      : texts.instagram
-        ? JSON.stringify(texts.instagram)
-        : ''
-
     return NextResponse.json({
-      destination: flyer.destination || '',
-      country: flyer.country || '',
-      price: flyer.price || '',
-      dates: flyer.dates || '',
-      hotel: flyer.hotel || '',
-      includes: Array.isArray(flyer.includes) ? flyer.includes : [],
-      searchQuery: flyer.searchQuery || flyer.destination || '',
-      textFacebook,
-      textInstagram,
-      images
+      destination:   toStr(flyer.destination),
+      country:       toStr(flyer.country),
+      price:         toStr(flyer.price),
+      dates:         toStr(flyer.dates),
+      nights:        toStr(flyer.nights),
+      hotel:         toStr(flyer.hotel),
+      includes:      Array.isArray(flyer.includes) ? flyer.includes.map(toStr) : [],
+      searchQuery:   toStr(flyer.searchQuery) || toStr(flyer.destination),
+      textFacebook:  toStr(texts.facebook),
+      textInstagram: toStr(texts.instagram),
+      images,
     })
 
   } catch (error: any) {

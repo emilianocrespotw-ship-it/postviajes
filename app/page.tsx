@@ -9,6 +9,8 @@ interface FlyerResult {
   country: string
   price: string
   dates: string
+  nights: string
+  hotel: string
   includes: string[]
   textFacebook: string
   textInstagram: string
@@ -104,6 +106,8 @@ export default function Home() {
         country:       toStr(data.country),
         price:         toStr(data.price),
         dates:         toStr(data.dates),
+        nights:        toStr(data.nights),
+        hotel:         toStr(data.hotel),
         includes:      Array.isArray(data.includes) ? data.includes.map(toStr) : [],
         textFacebook:  toStr(data.textFacebook),
         textInstagram: toStr(data.textInstagram),
@@ -368,8 +372,12 @@ export default function Home() {
               <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-hidden flex flex-col">
                 <div className="p-5 border-b border-slate-800">
                   <p className="text-xs text-slate-400 font-bold tracking-widest mb-0.5">TU POST</p>
-                  <h3 className="text-lg font-bold">{result.destination} {result.price && <span className="text-green-400 font-normal text-base">· {result.price}</span>}</h3>
-                  {result.dates && <p className="text-slate-400 text-xs mt-0.5">{result.dates}</p>}
+                  <h3 className="text-lg font-bold">
+                    {result.destination}
+                    {result.nights && <span className="text-slate-400 font-normal text-sm"> · {result.nights} nts</span>}
+                  </h3>
+                  {result.dates && <p className="text-indigo-300 text-xs mt-0.5">📅 {result.dates}</p>}
+                  {result.price && <p className="text-green-400 text-sm font-bold mt-1">💵 {result.price}</p>}
                 </div>
                 {/* Tabs FB / IG */}
                 <div className="flex border-b border-slate-800">
@@ -440,8 +448,12 @@ export default function Home() {
               <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-hidden flex flex-col">
                 <div className="p-5 border-b border-slate-800">
                   <p className="text-xs text-slate-400 font-bold tracking-widest mb-0.5">TU POST</p>
-                  <h3 className="text-lg font-bold">{result.destination} {result.price && <span className="text-green-400 font-normal text-base">· {result.price}</span>}</h3>
-                  {result.dates && <p className="text-slate-400 text-xs mt-0.5">{result.dates}</p>}
+                  <h3 className="text-lg font-bold">
+                    {result.destination}
+                    {result.nights && <span className="text-slate-400 font-normal text-sm"> · {result.nights} nts</span>}
+                  </h3>
+                  {result.dates && <p className="text-indigo-300 text-xs mt-0.5">📅 {result.dates}</p>}
+                  {result.price && <p className="text-green-400 text-sm font-bold mt-1">💵 {result.price}</p>}
                 </div>
                 <div className="flex border-b border-slate-800">
                   <button
@@ -483,16 +495,18 @@ export default function Home() {
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-start justify-between mb-5">
                     <div>
                       <p className="text-xs text-green-400 font-bold tracking-widest mb-1">PASO 4 DE 4</p>
                       <h3 className="text-xl font-bold flex items-center gap-2">
                         <CheckCircle className="text-green-500 w-5 h-5" />
                         <span>{result.destination}</span>
-                        {result.price && <span className="text-green-400 text-base font-normal">· {result.price}</span>}
+                        {result.nights && <span className="text-slate-400 text-sm font-normal">· {result.nights} nts</span>}
                       </h3>
+                      {result.dates && <p className="text-indigo-300 text-sm mt-0.5">📅 {result.dates}</p>}
+                      {result.price && <p className="text-green-400 text-base font-bold mt-0.5">💵 {result.price}</p>}
                     </div>
-                    <button onClick={() => goTo('style', 'right')} className="text-xs text-slate-500 hover:text-white flex items-center gap-1 transition">
+                    <button onClick={() => goTo('style', 'right')} className="text-xs text-slate-500 hover:text-white flex items-center gap-1 transition mt-1">
                       <ArrowLeft className="w-3 h-3" /> Volver
                     </button>
                   </div>
