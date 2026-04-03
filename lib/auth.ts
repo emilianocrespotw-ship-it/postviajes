@@ -8,21 +8,17 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.FACEBOOK_APP_SECRET!,
       authorization: {
         params: {
+          // Solo los scopes básicos que no requieren aprobación especial de Meta.
+          // pages_manage_posts + pages_show_list funcionan en modo desarrollo
+          // para cuentas admin de la app sin necesitar review.
+          // Instagram publish por API requiere producto aprobado → lo manejamos
+          // manualmente con el botón que descarga + abre Instagram.
           scope: [
             'public_profile',
             'email',
-            // Páginas de empresa
             'pages_show_list',
-            'pages_read_engagement',
             'pages_manage_posts',
-            // Instagram Business vinculado a la página
-            'instagram_basic',
-            'instagram_content_publish',
-            // Perfil personal (para publicar en tu propio timeline en dev mode)
-            'user_photos',
           ].join(','),
-          // Forzar re-consent siempre para que Facebook muestre los checkboxes
-          // de permisos correctamente aunque el usuario ya esté logueado
           auth_type: 'rerequest',
         },
       },
