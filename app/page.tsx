@@ -52,12 +52,13 @@ interface Photo {
   source: string
 }
 
+// Filtros inspirados en los más usados de Instagram
 const STYLES = [
-  { id: 'none',     label: 'Original',  emoji: '✨', filter: '' },
-  { id: 'warm',     label: 'Cálido',    emoji: '🌅', filter: 'sepia(0.35) saturate(1.4) brightness(1.05)' },
-  { id: 'cairo',    label: 'El Cairo',  emoji: '🏛️', filter: 'sepia(0.45) saturate(1.4) contrast(1.08) brightness(0.96) hue-rotate(8deg)' },
-  { id: 'dramatic', label: 'Dramático', emoji: '🌙', filter: 'brightness(0.75) contrast(1.35) saturate(0.9)' },
-  { id: 'vivid',    label: 'Vibrante',  emoji: '🎨', filter: 'saturate(1.9) brightness(1.08) contrast(1.05)' },
+  { id: 'none',       label: 'Original',   emoji: '✨', filter: '' },
+  { id: 'clarendon', label: 'Clarendon',  emoji: '💎', filter: 'brightness(1.1) contrast(1.2) saturate(1.35)' },
+  { id: 'aden',      label: 'Aden',       emoji: '🌅', filter: 'sepia(0.2) brightness(1.15) saturate(0.85) hue-rotate(20deg)' },
+  { id: 'cairo',     label: 'El Cairo',   emoji: '🏛️', filter: 'sepia(0.45) saturate(1.4) contrast(1.08) brightness(0.96) hue-rotate(8deg)' },
+  { id: 'vivid',     label: 'Vibrante',   emoji: '🎨', filter: 'saturate(1.9) brightness(1.08) contrast(1.05)' },
 ]
 
 function toStr(val: unknown): string {
@@ -223,8 +224,23 @@ export default function Home() {
         setPublished(true)
         setPublishResult({ pageName: data.pageName })
       } else {
+        const code = data.code || null
         setError(data.error || data.errors?.join(', ') || 'Error al publicar')
-        setErrorCode(data.code || null)
+        setErrorCode(code)
+        // Sin página: auto-descargar imagen y auto-copiar texto para facilitar publicación manual
+        if (code === 'NO_PAGES' && selectedPhoto && result) {
+          const safeD = result.destination.replace(/[^a-z0-9]/gi, '-').toLowerCase()
+          const dlUrl = `/api/download-image?url=${encodeURIComponent(selectedPhoto.url)}&name=postviajes-${safeD}.jpg`
+          const a = document.createElement('a')
+          a.href = dlUrl
+          a.download = `postviajes-${safeD}.jpg`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          if (navigator?.clipboard?.writeText) {
+            navigator.clipboard.writeText(editedFB || result.textFacebook).catch(() => {})
+          }
+        }
       }
     } catch {
       setError('Error de red al publicar')
@@ -300,7 +316,23 @@ export default function Home() {
               Flyer a post<br />
               <span className="text-indigo-400">en segundos</span>
             </h1>
-            <p className="text-white/40 text-base">La IA lee tu flyer y escribe el post por vos.</p>
+            <p className="text-white/40 text-base">La IA lee tu flyer y escribe el post listo para publicar.</p>
+
+            {/* Pasos explicativos */}
+            <div className="grid grid-cols-4 gap-2 mt-7 text-left">
+              {[
+                { n: '1', icon: '📎', label: 'Subí el flyer', desc: 'Tu promoción de viaje' },
+                { n: '2', icon: '🤖', label: 'La IA lo lee', desc: 'Destino, fechas y precio' },
+                { n: '3', icon: '🖼️', label: 'Elegí la foto', desc: 'Del destino exacto' },
+                { n: '4', icon: '🚀', label: 'Publicá', desc: 'Facebook o Instagram' },
+              ].map(({ n, icon, label, desc }) => (
+                <div key={n} className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-3 flex flex-col gap-1">
+                  <span className="text-2xl">{icon}</span>
+                  <p className="text-xs font-black text-white/90 leading-tight">{label}</p>
+                  <p className="text-[10px] text-white/35 leading-tight">{desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -602,21 +634,34 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Sin páginas de Facebook → mostrar guía en lugar de error */}
+                {/* Sin páginas de Facebook → flujo ágil */}
                 {errorCode === 'NO_PAGES' && (
-                  <div className="mt-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm">
-                    <p className="font-bold text-white/80 mb-2">¿Sin Página de Facebook?</p>
-                    <p className="text-white/40 text-xs leading-relaxed mb-3">
-                      La publicación automática requiere ser admin de una <strong className="text-white/60">Página</strong> (no tu perfil personal).
-                      Podés igualmente publicar manualmente en 3 pasos:
+                  <div className="mt-2 rounded-2xl border border-green-500/20 bg-green-500/5 p-4 text-sm">
+                    <p className="font-black text-green-400 mb-1">✅ Foto descargada · Texto copiado</p>
+                    <p className="text-white/50 text-xs leading-relaxed mb-3">
+                      La publicación directa requiere una <strong className="text-white/70">Página de Facebook</strong>.
+                      Ya tenés la foto y el texto listos — solo pegá en tu red social favorita.
                     </p>
-                    <ol className="text-white/50 text-xs space-y-1.5 list-decimal list-inside">
-                      <li>Descargá la foto con el botón de arriba</li>
-                      <li>Copiá el texto de Instagram o Facebook</li>
-                      <li>Abrí la red social, creá un post, subí la foto y pegá el texto</li>
-                    </ol>
-                    <button onClick={() => signIn('facebook')} className="mt-3 text-xs text-indigo-400 hover:text-indigo-300 underline transition">
-                      Tengo una Página → reconectá tu cuenta
+                    <div className="grid grid-cols-2 gap-2">
+                      <a
+                        href="https://www.facebook.com"
+                        target="_blank"
+                        rel="noopener"
+                        className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-blue-600/20 border border-blue-500/30 text-blue-300 hover:bg-blue-600/30 transition"
+                      >
+                        <FbIcon className="w-3.5 h-3.5" /> Ir a Facebook →
+                      </a>
+                      <a
+                        href="https://www.instagram.com"
+                        target="_blank"
+                        rel="noopener"
+                        className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-pink-600/15 border border-pink-500/25 text-pink-300 hover:bg-pink-600/25 transition"
+                      >
+                        <IgIcon className="w-3.5 h-3.5" /> Ir a Instagram →
+                      </a>
+                    </div>
+                    <button onClick={() => signIn('facebook')} className="mt-3 w-full text-xs text-indigo-400 hover:text-indigo-300 transition">
+                      Tengo una Página de Facebook → reconectá →
                     </button>
                   </div>
                 )}
@@ -694,8 +739,29 @@ function DownloadShareBar({
   textInstagram: string
   textFacebook: string
 }) {
+  const [igToast, setIgToast] = useState(false)
   const safeDestination = destination.replace(/[^a-z0-9]/gi, '-').toLowerCase()
   const downloadUrl = `/api/download-image?url=${encodeURIComponent(imageUrl)}&name=postviajes-${safeDestination}.jpg`
+
+  const handleInstagram = async () => {
+    // 1. Disparar descarga de imagen
+    const a = document.createElement('a')
+    a.href = downloadUrl
+    a.download = `postviajes-${safeDestination}.jpg`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    // 2. Copiar texto de Instagram al portapapeles
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(textInstagram || textFacebook).catch(() => {})
+    }
+    // 3. Toast + abrir Instagram después de 1.5s
+    setIgToast(true)
+    setTimeout(() => {
+      setIgToast(false)
+      window.open('https://www.instagram.com', '_blank', 'noopener')
+    }, 1500)
+  }
 
   return (
     <div className="mt-4 grid grid-cols-2 gap-3">
@@ -704,28 +770,32 @@ function DownloadShareBar({
         href={downloadUrl}
         download
         className="flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm
-          bg-white/8 border border-white/10 hover:bg-white/14 transition text-white/80"
+          bg-white/[0.06] border border-white/10 hover:bg-white/10 transition text-white/80"
       >
         <Download className="w-4 h-4 text-white/50" />
         Descargar foto
       </a>
 
-      {/* Compartir en Instagram (abre app) */}
-      <a
-        href={`instagram://library`}
-        onClick={e => {
-          // Fallback: copiar texto de IG si la app no abre
-          if (typeof navigator !== 'undefined' && navigator.clipboard) {
-            navigator.clipboard.writeText(textInstagram || textFacebook).catch(() => {})
-          }
-        }}
-        className="flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm
+      {/* Subir a Instagram: descarga + copia texto + abre IG */}
+      <button
+        onClick={handleInstagram}
+        className="relative flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm
           bg-gradient-to-r from-purple-500/15 to-pink-500/15 border border-pink-500/20
           hover:from-purple-500/25 hover:to-pink-500/25 transition text-pink-300"
       >
-        <IgIcon className="w-4 h-4" />
-        Subir a Instagram
-      </a>
+        {igToast ? (
+          <span className="text-green-400 text-xs font-black">✅ Foto descargada · Texto copiado</span>
+        ) : (
+          <><IgIcon className="w-4 h-4" /> Subir a Instagram</>
+        )}
+      </button>
+
+      {/* Nota aclaratoria Instagram */}
+      {igToast && (
+        <p className="col-span-2 text-center text-[11px] text-white/35 -mt-1">
+          Abriendo Instagram… pegá el texto al crear tu post
+        </p>
+      )}
     </div>
   )
 }
