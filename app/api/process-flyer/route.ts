@@ -82,10 +82,28 @@ export async function POST(req: NextRequest) {
       console.warn('Supabase: error al guardar', e)
     }
 
+    // Ensure texts are always plain strings, even if the model returns objects
+    const textFacebook = typeof texts.facebook === 'string'
+      ? texts.facebook
+      : texts.facebook
+        ? JSON.stringify(texts.facebook)
+        : ''
+    const textInstagram = typeof texts.instagram === 'string'
+      ? texts.instagram
+      : texts.instagram
+        ? JSON.stringify(texts.instagram)
+        : ''
+
     return NextResponse.json({
-      ...flyer,
-      textFacebook: texts.facebook,
-      textInstagram: texts.instagram,
+      destination: flyer.destination || '',
+      country: flyer.country || '',
+      price: flyer.price || '',
+      dates: flyer.dates || '',
+      hotel: flyer.hotel || '',
+      includes: Array.isArray(flyer.includes) ? flyer.includes : [],
+      searchQuery: flyer.searchQuery || flyer.destination || '',
+      textFacebook,
+      textInstagram,
       images
     })
 

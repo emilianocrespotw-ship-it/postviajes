@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { Upload, Bot, Image as ImageIcon, Palette, Rocket, CheckCircle, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -31,6 +31,14 @@ const STYLES = [
   { id: 'dramatic', label: 'Dramático', emoji: '🌙', filter: 'brightness(0.7) contrast(1.3)' },
   { id: 'vivid',    label: 'Vibrante',  emoji: '🎨', filter: 'saturate(2) brightness(1.1)' },
 ]
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function toStr(val: unknown): string {
+  if (val === null || val === undefined) return ''
+  if (typeof val === 'string') return val
+  if (typeof val === 'object') return JSON.stringify(val)
+  return String(val)
+}
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function Home() {
@@ -89,13 +97,25 @@ export default function Home() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error procesando el flyer')
 
-      setResult(data)
+      // Normalise all fields to prevent "Objects are not valid as React child" crash
+      const normalized: FlyerResult = {
+        destination:   toStr(data.destination),
+        country:       toStr(data.country),
+        price:         toStr(data.price),
+        dates:         toStr(data.dates),
+        includes:      Array.isArray(data.includes) ? data.includes.map(toStr) : [],
+        textFacebook:  toStr(data.textFacebook),
+        textInstagram: toStr(data.textInstagram),
+        searchQuery:   toStr(data.searchQuery) || toStr(data.destination),
+      }
+
+      setResult(normalized)
       setCurrentStep(3)
       setCarouselIndex(0)
 
-      fetch(`/api/suggest-images?q=${encodeURIComponent(data.searchQuery)}`)
+      fetch(`/api/suggest-images?q=${encodeURIComponent(normalized.searchQuery)}`)
         .then(r => r.json())
-        .then(d => setImages(d.images || []))
+        .then(d => setImages(Array.isArray(d.images) ? d.images : []))
         .catch(() => {})
 
       goTo('images', 'left')
@@ -162,7 +182,7 @@ export default function Home() {
 
   // clase de animación según dirección
   const animClass =
-    animDir === 'left' ? 'animate-fade-left' :
+    animDir === 'left'  ? 'animate-fade-left'  :
     animDir === 'right' ? 'animate-fade-right' :
     'animate-fade-up'
 
@@ -286,7 +306,6 @@ export default function Home() {
                       alt=""
                       className="w-full h-full object-cover animate-fade-left"
                     />
-                    {/* Flechas */}
                     <button
                       onClick={() => setCarouselIndex(i => Math.max(0, i - 1))}
                       disabled={carouselIndex === 0}
@@ -301,7 +320,6 @@ export default function Home() {
                     >
                       <ChevronRight className="w-5 h-5 text-white" />
                     </button>
-                    {/* Badge fuente y fotógrafo */}
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 p-3 flex justify-between items-end">
                       <p className="text-white text-xs truncate">{images[carouselIndex]?.photographer}</p>
                       <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full text-white">
@@ -310,8 +328,8 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Thumbnails / dots */}
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                  {/* Thumbnails */}
+                  <div className="flex gap-2 overflow-x-auto pb-1">
                     {images.map((img, i) => (
                       <button
                         key={img.id}
@@ -323,7 +341,6 @@ export default function Home() {
                     ))}
                   </div>
 
-                  {/* Botón elegir esta foto */}
                   <button
                     onClick={() => handleSelectImage(images[carouselIndex])}
                     className="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-2xl font-bold transition flex items-center justify-center gap-2"
@@ -390,7 +407,8 @@ export default function Home() {
                     <div>
                       <p className="text-xs text-green-400 font-bold tracking-widest mb-1">PASO 4 DE 4</p>
                       <h3 className="text-xl font-bold flex items-center gap-2">
-                        <CheckCircle className="text-green-500 w-5 h-5" /> {result.destination}
+                        <CheckCircle className="text-green-500 w-5 h-5" />
+                        <span>{result.destination}</span>
                         {result.price && <span className="text-green-400 text-base font-normal">· {result.price}</span>}
                       </h3>
                     </div>
@@ -481,15 +499,31 @@ export default function Home() {
 // ─── Subcomponentes ───────────────────────────────────────────────────────────
 function PostCard({ title, text, color }: { title: string; text: string; color: string }) {
   const [copied, setCopied] = useState(false)
-  const copy = () => {
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+  const copy = async () => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text || '')
+      } else {
+        // Fallback para entornos sin Clipboard API
+        const el = document.createElement('textarea')
+        el.value = text || ''
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Silently ignore clipboard errors
+    }
   }
   return (
     <div className="bg-slate-800/30 border border-slate-700/50 p-4 rounded-3xl relative group">
       <p className={`text-[10px] font-black tracking-widest mb-2 ${color}`}>{title}</p>
-      <p className="text-xs text-slate-300 leading-relaxed line-clamp-6">{text}</p>
+      <p className="text-xs text-slate-300 leading-relaxed" style={{ display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        {text || <span className="text-slate-500 italic">Sin texto generado</span>}
+      </p>
       <button
         onClick={copy}
         className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-[10px]"
