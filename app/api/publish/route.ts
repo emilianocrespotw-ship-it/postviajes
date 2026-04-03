@@ -13,14 +13,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const { imageUrl, textFacebook, textInstagram } = await req.json()
-
     if (!imageUrl || !textFacebook) {
-      return NextResponse.json({
-        error: 'Faltan datos: imageUrl y textFacebook son requeridos.',
-      }, { status: 400 })
+      return NextResponse.json({ error: 'Faltan datos.' }, { status: 400 })
     }
 
-    // 1. Obtener páginas de Facebook del usuario
+    // 1. Obtener páginas de Facebook
     const pagesRes = await fetch(
       `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${session.accessToken}`
     )
@@ -35,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     if (!pagesData.data || pagesData.data.length === 0) {
       return NextResponse.json({
-        error: 'Tu cuenta de Facebook no tiene páginas de empresa vinculadas. Para publicar necesitás ser administrador de una Página de Facebook.',
+        error: 'Tu cuenta no tiene Páginas de Facebook. Necesitás ser administrador de una Página para publicar automáticamente.',
         code: 'NO_PAGES',
       }, { status: 404 })
     }
@@ -44,21 +41,46 @@ export async function POST(req: NextRequest) {
     const pageId = page.id
     const pageToken = page.access_token
 
+    // 2. Descargar la imagen en el servidor → evita que Facebook rechace la URL del CDN
+    let imageBlob: Blob | null = null
+    try {
+      const imgRes = await fetch(imageUrl, {
+        headers: { 'User-Agent': 'PostViajes/1.0 (travel agency social media tool)' },
+      })
+      if (imgRes.ok) {
+        imageBlob = await imgRes.blob()
+      }
+    } catch (e) {
+      console.warn('No se pudo descargar la imagen, se usará URL directa:', e)
+    }
+
     const errors: string[] = []
     let fbPostId: string | null = null
     let igPostId: string | null = null
 
-    // 2. Publicar en Facebook
+    // 3. Publicar en Facebook — binario si está disponible, URL como fallback
     try {
-      const fbRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: imageUrl,
-          caption: textFacebook,
-          access_token: pageToken,
-        }),
-      })
+      let fbRes: Response
+
+      if (imageBlob) {
+        // Upload binario (más confiable — evita bloqueos de CDN)
+        const form = new FormData()
+        form.append('source', imageBlob, 'photo.jpg')
+        form.append('caption', textFacebook)
+        form.append('access_token', pageToken)
+        fbRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`, {
+          method: 'POST',
+          body: form,
+        })
+      } else {
+        // Fallback a URL si el download falló
+        fbRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: imageUrl, caption: textFacebook, access_token: pageToken }),
+        })
+      }
+
       const fbData = await fbRes.json()
       if (fbData.error) {
         errors.push(`Facebook: ${fbData.error.message}`)
@@ -69,7 +91,7 @@ export async function POST(req: NextRequest) {
       errors.push(`Facebook: ${e.message}`)
     }
 
-    // 3. Publicar en Instagram (si la página tiene IG vinculado)
+    // 4. Publicar en Instagram (si la página tiene IG vinculado)
     try {
       const igAccountRes = await fetch(
         `https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${pageToken}`
@@ -78,6 +100,7 @@ export async function POST(req: NextRequest) {
       const igAccountId = igAccountData.instagram_business_account?.id
 
       if (igAccountId) {
+        // IG solo acepta URL pública — usar la URL original
         const containerRes = await fetch(`https://graph.facebook.com/v21.0/${igAccountId}/media`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -93,10 +116,7 @@ export async function POST(req: NextRequest) {
           const publishRes = await fetch(`https://graph.facebook.com/v21.0/${igAccountId}/media_publish`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              creation_id: containerData.id,
-              access_token: pageToken,
-            }),
+            body: JSON.stringify({ creation_id: containerData.id, access_token: pageToken }),
           })
           const publishData = await publishRes.json()
           if (publishData.error) {

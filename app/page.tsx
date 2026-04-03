@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import {
   Upload, Bot, Rocket, ArrowLeft,
-  ChevronLeft, ChevronRight, Copy, Check, Pencil,
+  ChevronLeft, ChevronRight, Copy, Check, Download,
 } from 'lucide-react'
 
 // ─── Brand icons ──────────────────────────────────────────────────────────────
@@ -559,26 +559,42 @@ export default function Home() {
                   onChangeInstagram={setEditedIG}
                 />
 
-                {/* Error */}
-                {error && (
-                  <div className="mt-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-4 text-sm">
-                    <p className="font-bold mb-1">
-                      {errorCode === 'NO_PAGES' ? '📄 No encontramos páginas de Facebook' : '❌ Error al publicar'}
-                    </p>
+                {/* ── Acciones de descarga / compartir ── */}
+                <DownloadShareBar
+                  imageUrl={selectedPhoto.url}
+                  destination={result.destination}
+                  textInstagram={editedIG}
+                  textFacebook={editedFB}
+                />
+
+                {/* ── Error al publicar ── */}
+                {error && errorCode !== 'NO_PAGES' && (
+                  <div className="mt-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-4 text-sm">
+                    <p className="font-bold mb-1">❌ Error al publicar</p>
                     <p className="text-red-400/80">{error}</p>
-                    {errorCode === 'NO_PAGES' && (
-                      <p className="mt-2 text-red-400/60 text-xs">
-                        Necesitás ser administrador de una Página de Facebook (no es tu perfil personal).
-                        {' '}
-                        <button onClick={() => signIn('facebook')} className="underline hover:text-red-300">
-                          Reconectá tu cuenta →
-                        </button>
-                      </p>
-                    )}
                   </div>
                 )}
 
-                {/* Botón publicar */}
+                {/* Sin páginas de Facebook → mostrar guía en lugar de error */}
+                {errorCode === 'NO_PAGES' && (
+                  <div className="mt-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm">
+                    <p className="font-bold text-white/80 mb-2">¿Sin Página de Facebook?</p>
+                    <p className="text-white/40 text-xs leading-relaxed mb-3">
+                      La publicación automática requiere ser admin de una <strong className="text-white/60">Página</strong> (no tu perfil personal).
+                      Podés igualmente publicar manualmente en 3 pasos:
+                    </p>
+                    <ol className="text-white/50 text-xs space-y-1.5 list-decimal list-inside">
+                      <li>Descargá la foto con el botón de arriba</li>
+                      <li>Copiá el texto de Instagram o Facebook</li>
+                      <li>Abrí la red social, creá un post, subí la foto y pegá el texto</li>
+                    </ol>
+                    <button onClick={() => signIn('facebook')} className="mt-3 text-xs text-indigo-400 hover:text-indigo-300 underline transition">
+                      Tengo una Página → reconectá tu cuenta
+                    </button>
+                  </div>
+                )}
+
+                {/* ── Botón publicar automático (solo para usuarios con Páginas) ── */}
                 <button
                   onClick={handlePublish}
                   disabled={!session || publishing}
@@ -589,15 +605,12 @@ export default function Home() {
                   {publishing
                     ? <><div className="animate-spin rounded-full h-5 w-5 border-2 border-black/40 border-t-black" /> Publicando…</>
                     : session
-                      ? <><Rocket className="w-5 h-5" /> Publicar en redes 🚀</>
+                      ? <><Rocket className="w-5 h-5" /> Publicar automáticamente 🚀</>
                       : '🔒 Conectá Facebook para publicar'
                   }
                 </button>
                 {!session && (
-                  <button
-                    onClick={() => signIn('facebook')}
-                    className="mt-3 w-full py-3 rounded-2xl text-sm font-bold border border-white/10 hover:bg-white/5 transition"
-                  >
+                  <button onClick={() => signIn('facebook')} className="mt-3 w-full py-3 rounded-2xl text-sm font-bold border border-white/10 hover:bg-white/5 transition">
                     Conectar Facebook →
                   </button>
                 )}
@@ -641,6 +654,51 @@ export default function Home() {
           {' · '}© {new Date().getFullYear()}
         </p>
       </footer>
+    </div>
+  )
+}
+
+// ─── DownloadShareBar ────────────────────────────────────────────────────────
+function DownloadShareBar({
+  imageUrl, destination, textInstagram, textFacebook,
+}: {
+  imageUrl: string
+  destination: string
+  textInstagram: string
+  textFacebook: string
+}) {
+  const safeDestination = destination.replace(/[^a-z0-9]/gi, '-').toLowerCase()
+  const downloadUrl = `/api/download-image?url=${encodeURIComponent(imageUrl)}&name=postviajes-${safeDestination}.jpg`
+
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-3">
+      {/* Descargar foto */}
+      <a
+        href={downloadUrl}
+        download
+        className="flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm
+          bg-white/8 border border-white/10 hover:bg-white/14 transition text-white/80"
+      >
+        <Download className="w-4 h-4 text-white/50" />
+        Descargar foto
+      </a>
+
+      {/* Compartir en Instagram (abre app) */}
+      <a
+        href={`instagram://library`}
+        onClick={e => {
+          // Fallback: copiar texto de IG si la app no abre
+          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(textInstagram || textFacebook).catch(() => {})
+          }
+        }}
+        className="flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm
+          bg-gradient-to-r from-purple-500/15 to-pink-500/15 border border-pink-500/20
+          hover:from-purple-500/25 hover:to-pink-500/25 transition text-pink-300"
+      >
+        <IgIcon className="w-4 h-4" />
+        Subir a Instagram
+      </a>
     </div>
   )
 }
