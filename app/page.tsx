@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import {
   Upload, Bot, Rocket, ArrowLeft,
@@ -55,7 +55,7 @@ interface Photo {
 const STYLES = [
   { id: 'none',     label: 'Original',  emoji: '✨', filter: '' },
   { id: 'warm',     label: 'Cálido',    emoji: '🌅', filter: 'sepia(0.35) saturate(1.4) brightness(1.05)' },
-  { id: 'cool',     label: 'Fresco',    emoji: '🌊', filter: 'hue-rotate(170deg) saturate(0.85) brightness(1.05)' },
+  { id: 'cairo',    label: 'El Cairo',  emoji: '🏛️', filter: 'sepia(0.45) saturate(1.4) contrast(1.08) brightness(0.96) hue-rotate(8deg)' },
   { id: 'dramatic', label: 'Dramático', emoji: '🌙', filter: 'brightness(0.75) contrast(1.35) saturate(0.9)' },
   { id: 'vivid',    label: 'Vibrante',  emoji: '🎨', filter: 'saturate(1.9) brightness(1.08) contrast(1.05)' },
 ]
@@ -87,6 +87,22 @@ function useCopy() {
     } catch { /* ignore */ }
   }
   return { copied, copy }
+}
+
+// ─── Hook: swipe táctil ───────────────────────────────────────────────────────
+function useSwipe(onLeft: () => void, onRight: () => void) {
+  const startX = useRef<number | null>(null)
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX
+  }, [])
+  const onTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (startX.current === null) return
+    const delta = e.changedTouches[0].clientX - startX.current
+    if (delta < -45) onLeft()
+    else if (delta > 45) onRight()
+    startX.current = null
+  }, [onLeft, onRight])
+  return { onTouchStart, onTouchEnd }
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -238,6 +254,12 @@ export default function Home() {
 
   const currentPhoto = photos[photoIdx]
 
+  // Swipe para navegar entre fotos
+  const { onTouchStart: swipeTouchStart, onTouchEnd: swipeTouchEnd } = useSwipe(
+    useCallback(() => setPhotoIdx(i => Math.min(photos.length - 1, i + 1)), [photos.length]),
+    useCallback(() => setPhotoIdx(i => Math.max(0, i - 1)), []),
+  )
+
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#06080f] text-white font-sans">
@@ -377,7 +399,12 @@ export default function Home() {
             ) : (
               <>
                 {/* Foto principal — ocupa todo el ancho */}
-                <div className="relative rounded-3xl overflow-hidden mb-3" style={{ aspectRatio: '3/4' }}>
+                <div
+                  className="relative rounded-3xl overflow-hidden mb-3"
+                  style={{ aspectRatio: '3/4' }}
+                  onTouchStart={swipeTouchStart}
+                  onTouchEnd={swipeTouchEnd}
+                >
                   <img
                     key={photoIdx}
                     src={currentPhoto?.thumbnail}
@@ -407,8 +434,7 @@ export default function Home() {
                   {/* Contador + fuente */}
                   <div className="absolute bottom-0 left-0 right-0 p-4 flex items-end justify-between">
                     <div>
-                      <p className="text-white font-medium text-sm">{currentPhoto?.photographer}</p>
-                      <p className="text-white/50 text-xs">{currentPhoto?.source}</p>
+                      <p className="text-white/40 text-xs">{currentPhoto?.source}</p>
                     </div>
                     <div className="flex gap-1.5">
                       {photos.map((_, i) => (
@@ -557,6 +583,7 @@ export default function Home() {
                   setActiveTab={setActiveTab}
                   onChangeFacebook={setEditedFB}
                   onChangeInstagram={setEditedIG}
+                  imageUrl={selectedPhoto.url}
                 />
 
                 {/* ── Acciones de descarga / compartir ── */}
@@ -711,6 +738,7 @@ function PostTextCard({
   setActiveTab,
   onChangeFacebook,
   onChangeInstagram,
+  imageUrl,
 }: {
   textFacebook: string
   textInstagram: string
@@ -718,16 +746,32 @@ function PostTextCard({
   setActiveTab: (t: 'instagram' | 'facebook') => void
   onChangeFacebook?: (v: string) => void
   onChangeInstagram?: (v: string) => void
+  imageUrl?: string
 }) {
   const { copied, copy } = useCopy()
   const isIG = activeTab === 'instagram'
   const text = isIG ? textInstagram : textFacebook
   const onChange = isIG ? onChangeInstagram : onChangeFacebook
 
-  const shareWhatsApp = () => {
+  const shareWhatsApp = async () => {
     if (!text) return
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`
-    window.open(url, '_blank', 'noopener')
+    // Intentamos Web Share API (funciona en móvil con imagen)
+    if (imageUrl && typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        const res = await fetch(`/api/download-image?url=${encodeURIComponent(imageUrl)}&name=postviajes.jpg`)
+        const blob = await res.blob()
+        const file = new File([blob], 'postviajes.jpg', { type: 'image/jpeg' })
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], text })
+          return
+        }
+        // Share sin imagen pero con texto
+        await navigator.share({ text })
+        return
+      } catch { /* fallback abajo */ }
+    }
+    // Fallback: wa.me con solo texto
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
   }
 
   return (
