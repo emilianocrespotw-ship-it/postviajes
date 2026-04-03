@@ -4,6 +4,7 @@ import { useSession, signIn, signOut } from 'next-auth/react'
 import {
   Upload, Bot, Rocket, ArrowLeft,
   ChevronLeft, ChevronRight, Copy, Check, Download,
+  Image as ImageIcon,
 } from 'lucide-react'
 
 // ─── Brand icons ──────────────────────────────────────────────────────────────
@@ -313,23 +314,29 @@ export default function Home() {
         {/* ── HERO ── */}
         {(uiStep === 'upload' || uiStep === 'processing') && (
           <div className="text-center mb-8 animate-fade-up">
-            <h1 className="text-5xl md:text-6xl font-black tracking-tighter mb-3 leading-none">
-              Flyer a post<br />
-              <span className="text-[#1A4A5C]">en segundos</span>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-3 leading-tight text-[#111827]">
+              Del flyer del operador<br />
+              al post listo en{' '}
+              <span style={{ color: '#E8782E' }}>30 segundos</span>
             </h1>
-            <p className="text-gray-400 text-base">La IA lee tu flyer y escribe el post listo para publicar.</p>
+            <p className="text-gray-400 text-base">Subí la imagen, la IA genera el texto y la foto. Sin diseñador.</p>
 
-            {/* Pasos explicativos */}
+            {/* Pasos explicativos con íconos Lucide */}
             <div className="grid grid-cols-4 gap-2 mt-7 text-left">
               {[
-                { n: '1', icon: '📎', label: 'Subí el flyer', desc: 'Tu promoción de viaje' },
-                { n: '2', icon: '🤖', label: 'La IA lo lee', desc: 'Destino, fechas y precio' },
-                { n: '3', icon: '🖼️', label: 'Elegí la foto', desc: 'Del destino exacto' },
-                { n: '4', icon: '🚀', label: 'Publicá', desc: 'Facebook o Instagram' },
-              ].map(({ n, icon, label, desc }) => (
-                <div key={n} className="bg-white border border-gray-200 rounded-2xl p-3 flex flex-col gap-1">
-                  <span className="text-2xl">{icon}</span>
-                  <p className="text-xs font-black text-white/90 leading-tight">{label}</p>
+                { n: '1', Icon: Upload,    label: 'Subís el flyer',  desc: 'JPG, PNG o PDF' },
+                { n: '2', Icon: Bot,       label: 'La IA lo analiza', desc: 'Destino y precio' },
+                { n: '3', Icon: ImageIcon, label: 'Elegís la foto',  desc: 'Del destino exacto' },
+                { n: '4', Icon: Rocket,    label: 'Publicás',        desc: 'IG, FB o WhatsApp' },
+              ].map(({ n, Icon, label, desc }) => (
+                <div key={n} className="bg-white border border-gray-100 rounded-2xl p-3 flex flex-col gap-2 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="w-8 h-8 rounded-xl bg-[#E8F4F8] flex items-center justify-center text-[#1A4A5C]">
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <span className="text-lg font-black text-gray-100 select-none">{n}</span>
+                  </div>
+                  <p className="text-xs font-black text-[#111827] leading-tight">{label}</p>
                   <p className="text-[10px] text-gray-400 leading-tight">{desc}</p>
                 </div>
               ))}
