@@ -45,12 +45,14 @@ Formato EXACTO:
   "nights": "cantidad de noches como string (ej: 7)",
   "hotel": "nombre del hotel principal",
   "includes": ["item1", "item2", "item3"],
-  "searchQuery": "destination name in English for photo search (1-3 words, ONLY the place name, ej: Aruba beach)"
+  "searchQuery": "3-6 palabras en inglés para buscar fotos del destino (ej: 'Aruba beach turquoise sea', 'Buzios Brazil coast', 'Cancun resort beach Mexico')"
 }
 IMPORTANTE:
 - "price" debe ser SOLO el precio por persona (string simple, ej: "USD 1700 por persona")
 - "includes" debe ser un array de strings cortos
-- "searchQuery" debe ser SOLO el nombre del destino en inglés`,
+- "searchQuery" DEBE incluir el nombre del destino + 2-3 descriptores geográficos/visuales
+  específicos del lugar (playa, montaña, ciudad, etc.) para que las fotos sean del lugar exacto.
+  Ejemplo: "Aruba Eagle Beach palm trees" es mejor que solo "Aruba"`,
       messages: [{
         role: 'user',
         content: [
