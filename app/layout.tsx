@@ -8,8 +8,8 @@ import { Providers } from './providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'PostViajes — Del flyer al post en segundos',
-  description: 'Para agencias de viajes y operadores mayoristas. Convertí flyers en posts listos para Instagram, Facebook y WhatsApp.',
+  title: 'PostViajes — Flyer a Post en segundos',
+  description: 'La herramienta definitiva para agencias de viajes...',
 }
 
 export default function RootLayout({
