@@ -8,6 +8,51 @@ import { NextRequest, NextResponse } from 'next/server'
  * 2. Si faltan fotos, segunda búsqueda con destination + "tourism landscape"
  * 3. Sin filtro orientation — landscape se recorta bien con CSS object-cover
  */
+// ── Landmark keywords por destino ────────────────────────────────────────────
+// Mejora la búsqueda de fotos para destinos con iconos geográficos específicos
+const DESTINATION_BOOST: Record<string, string> = {
+  'bariloche':    'Lago Nahuel Huapi cerro Catedral Patagonia snow mountains',
+  'villa la angostura': 'Patagonia lake forest Argentina',
+  'san martin de los andes': 'Patagonia lake mountains Argentina',
+  'ushuaia':      'Tierra del Fuego Beagle Channel end of world southern',
+  'el calafate':  'Perito Moreno glacier Patagonia ice blue',
+  'el chalten':   'Fitz Roy Patagonia trekking mountains',
+  'mendoza':      'Andes mountains vineyard wine Argentina',
+  'salta':        'Quebrada Humahuaca colonial Argentina northwest',
+  'iguazu':       'Cataratas Iguazu waterfalls jungle Argentina',
+  'cordoba':      'Sierras Córdoba Argentina colonial city',
+  'mardel plata': 'Mar del Plata beach Argentina coast Atlantic',
+  'mar del plata':'Mar del Plata beach Argentina coast Atlantic',
+  'punta del este':'Punta del Este Uruguay beach resort peninsula',
+  'montevideo':   'Montevideo Uruguay rambla colonial city',
+  'rio de janeiro':'Rio de Janeiro Copacabana Sugarloaf Corcovado Brazil',
+  'buzios':       'Buzios Brazil coast beach peninsula',
+  'cancun':       'Cancun beach turquoise Caribbean Mexico resort',
+  'punta cana':   'Punta Cana beach palm trees Caribbean Dominican Republic',
+  'aruba':        'Aruba Eagle Beach turquoise sea palm trees',
+  'cartagena':    'Cartagena Colombia walled city Caribbean coast colorful',
+  'cusco':        'Cusco Machu Picchu Inca Peru Andes',
+  'lima':         'Lima Peru Miraflores Pacific coast',
+  'amsterdam':    'Amsterdam canals bicycles Netherlands',
+  'paris':        'Paris Eiffel Tower France Seine river',
+  'rome':         'Rome Colosseum Italy ancient',
+  'barcelona':    'Barcelona Sagrada Familia Mediterranean Spain',
+  'miami':        'Miami South Beach Art Deco Florida',
+}
+
+function getEnhancedQuery(q: string, destination: string): string {
+  const destLower = destination.toLowerCase().trim()
+  // Buscar coincidencia exacta o parcial en el mapa
+  for (const [key, boost] of Object.entries(DESTINATION_BOOST)) {
+    if (destLower.includes(key) || key.includes(destLower)) {
+      return boost
+    }
+  }
+  // Sin coincidencia: usar query del AI si tiene varios términos, sino agregar travel
+  const words = q.trim().split(/\s+/)
+  return words.length >= 2 ? q : `${destination} travel destination landscape`
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const q = searchParams.get('q') || ''           // searchQuery del AI, ej: "Aruba beach Caribbean"
@@ -18,12 +63,7 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Construir query principal ────────────────────────────────────────────────
-  // Si el AI ya generó términos descriptivos (más de una palabra) los usamos.
-  // Si es solo el destino, añadimos "travel" para evitar fotos de flores/plantas.
-  const words = q.trim().split(/\s+/)
-  const primaryQuery = words.length >= 2
-    ? q                                             // "Aruba beach Caribbean"
-    : `${destination} travel destination`           // "Aruba travel destination"
+  const primaryQuery = getEnhancedQuery(q, destination)
 
   // Query de respaldo si los resultados son insuficientes
   const fallbackQuery = `${destination} tourism landmark`

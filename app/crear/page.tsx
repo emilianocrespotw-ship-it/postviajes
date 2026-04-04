@@ -353,9 +353,9 @@ export default function Home() {
         <div className="flex justify-between items-center px-6 py-4 max-w-6xl mx-auto">
           <div className="flex items-center gap-3">
             <a href="/" className="text-gray-400 hover:text-[#1A4A5C] transition text-xs font-medium">← Inicio</a>
-            <button onClick={reset} className="font-black tracking-tight text-xl">
+            <a href="/" className="font-black tracking-tight text-xl">
               <span style={{ color: '#E8782E' }}>Post</span><span style={{ color: '#1A4A5C' }}>Viajes</span>
-            </button>
+            </a>
           </div>
           {session ? (
             <div className="flex items-center gap-3">
@@ -368,9 +368,9 @@ export default function Home() {
           ) : (
             <button
               onClick={() => signIn('facebook')}
-              className="bg-[#1A4A5C] hover:bg-[#2A6A82] text-[#111827] px-4 py-2 rounded-xl font-bold transition text-sm"
+              className="bg-[#1877F2] hover:bg-[#166FE5] text-white px-4 py-2 rounded-xl font-bold transition text-sm flex items-center gap-2"
             >
-              Conectar Facebook
+              <FbIcon className="w-4 h-4" /> Ingresá con Facebook
             </button>
           )}
         </div>
@@ -454,8 +454,8 @@ export default function Home() {
               onClick={processFlyer}
               disabled={!flyerBase64}
               className="w-full py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3
-                disabled:bg-gray-50 disabled:text-gray-300 disabled:cursor-not-allowed
-                bg-[#1A4A5C] hover:bg-[#2A6A82] text-[#111827] shadow-2xl shadow-[#1A4A5C]/20"
+                disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed
+                bg-[#E8782E] hover:bg-[#D46B25] text-white shadow-2xl shadow-[#E8782E]/30"
             >
               <Bot className="w-5 h-5" />
               Generá tu post con IA ✨
@@ -465,9 +465,9 @@ export default function Home() {
 
         {/* ── PASO 2: Procesando ── */}
         {uiStep === 'processing' && (
-          <div className={`flex flex-col items-center gap-6 py-16 ${animClass}`}>
+          <div className={`flex flex-col items-center gap-6 py-10 ${animClass}`}>
             <div className="relative">
-              <div className="w-24 h-24 rounded-full border-2 border-[#1A4A5C]/20 border-t-indigo-500 animate-spin" />
+              <div className="w-24 h-24 rounded-full border-2 border-[#1A4A5C]/20 border-t-[#E8782E] animate-spin" />
               <Bot className="w-9 h-9 text-[#1A4A5C] absolute inset-0 m-auto" />
             </div>
             <div className="text-center">
@@ -475,8 +475,11 @@ export default function Home() {
               <p className="text-gray-400 text-sm mt-2">Detectando destino, fechas y escribiendo el post</p>
             </div>
             {flyerPreview && (
-              <img src={flyerPreview} className="w-32 rounded-2xl opacity-30 blur-sm" alt="" />
+              <img src={flyerPreview} className="w-28 rounded-2xl opacity-30 blur-sm" alt="" />
             )}
+            <div className="w-full">
+              <StepProgress activeStep={2} />
+            </div>
           </div>
         )}
 
@@ -500,7 +503,7 @@ export default function Home() {
 
             {photos.length === 0 ? (
               /* Loading de fotos */
-              <div className="rounded-3xl overflow-hidden bg-white flex items-center justify-center" style={{ aspectRatio: '3/4' }}>
+              <div className="rounded-3xl overflow-hidden bg-white flex items-center justify-center" style={{ aspectRatio: '4/5', maxHeight: '52vh' }}>
                 <div className="text-center text-gray-400">
                   <div className="w-8 h-8 border-2 border-[#1A4A5C] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                   <p className="text-sm">Buscando fotos de {result.destination}…</p>
@@ -508,10 +511,10 @@ export default function Home() {
               </div>
             ) : (
               <>
-                {/* Foto principal — ocupa todo el ancho */}
+                {/* Foto principal — acotada en altura para que el botón quede visible */}
                 <div
                   className="relative rounded-3xl overflow-hidden mb-3"
-                  style={{ aspectRatio: '3/4' }}
+                  style={{ aspectRatio: '4/5', maxHeight: '52vh' }}
                   onTouchStart={swipeTouchStart}
                   onTouchEnd={swipeTouchEnd}
                 >
@@ -600,8 +603,8 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Foto con filtro aplicado — full width */}
-            <div className="rounded-3xl overflow-hidden" style={{ aspectRatio: '3/4' }}>
+            {/* Foto con filtro aplicado — acotada en altura para que todo quepa */}
+            <div className="rounded-3xl overflow-hidden" style={{ aspectRatio: '4/5', maxHeight: '50vh' }}>
               <img
                 src={selectedPhoto.thumbnail}
                 alt={result.destination}
@@ -612,16 +615,22 @@ export default function Home() {
 
             {/* Strip de filtros estilo Instagram Stories */}
             <div className="mt-3 -mx-4 px-4 overflow-x-auto scrollbar-hide">
-              <div className="flex gap-4 pb-2" style={{ width: 'max-content' }}>
+              <div className="flex gap-4 py-3 px-1" style={{ width: 'max-content' }}>
                 {STYLES.map(style => (
                   <button
                     key={style.id}
                     onClick={() => setSelectedStyle(style)}
                     className="flex flex-col items-center gap-1.5 flex-shrink-0"
                   >
-                    {/* Círculo con preview del filtro */}
-                    <div className={`w-16 h-16 rounded-full overflow-hidden ring-2 ring-offset-2 ring-offset-[#F8FAFB] transition-all duration-200
-                      ${selectedStyle.id === style.id ? 'ring-[#1A4A5C] scale-110' : 'ring-transparent'}`}
+                    {/* Círculo con preview del filtro — ring via box-shadow para evitar clipping */}
+                    <div
+                      className="w-16 h-16 rounded-full overflow-hidden transition-all duration-200"
+                      style={{
+                        boxShadow: selectedStyle.id === style.id
+                          ? '0 0 0 3px #F8FAFB, 0 0 0 5px #1A4A5C'
+                          : '0 0 0 2px #e5e7eb',
+                        transform: selectedStyle.id === style.id ? 'scale(1.12)' : 'scale(1)',
+                      }}
                     >
                       <img
                         src={selectedPhoto.thumbnail}
