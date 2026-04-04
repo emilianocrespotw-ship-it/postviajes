@@ -469,7 +469,7 @@ export default function Home() {
   )
 
   // ─── Render ──────────────────────────────────────────────────────────────────
-  if (!userEmail) return <EmailGate onConfirm={setUserEmail} />
+  //if (!userEmail) return <EmailGate onConfirm={setUserEmail} />
 
   return (
     <div className="min-h-screen bg-[#F8FAFB] text-[#111827] font-sans">
