@@ -32,6 +32,10 @@ body {
 .animate-fade-left  { animation: fadeInLeft  0.35s cubic-bezier(0.16,1,0.3,1) forwards; }
 .animate-fade-right { animation: fadeInRight 0.35s cubic-bezier(0.16,1,0.3,1) forwards; }
 
+/* ── Ocultar scrollbar (filtros estilo Instagram) ── */
+.scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
 /* ── Loader ── */
 @keyframes spin {
   to { transform: rotate(360deg); }

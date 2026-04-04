@@ -3,7 +3,7 @@ import { useState, useRef, useCallback } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import {
   Upload, Bot, Rocket, ArrowLeft,
-  ChevronLeft, ChevronRight, Copy, Check, Download,
+  ChevronLeft, ChevronRight, Copy, Check,
   Image as ImageIcon, Palette,
 } from 'lucide-react'
 
@@ -53,13 +53,18 @@ interface Photo {
   source: string
 }
 
-// Filtros inspirados en los más usados de Instagram
+// Filtros inspirados en Instagram Stories
 const STYLES = [
-  { id: 'none',       label: 'Original',   emoji: '✨', filter: '' },
-  { id: 'clarendon', label: 'Clarendon',  emoji: '💎', filter: 'brightness(1.1) contrast(1.2) saturate(1.35)' },
-  { id: 'aden',      label: 'Aden',       emoji: '🌅', filter: 'sepia(0.2) brightness(1.15) saturate(0.85) hue-rotate(20deg)' },
-  { id: 'cairo',     label: 'El Cairo',   emoji: '🏛️', filter: 'sepia(0.45) saturate(1.4) contrast(1.08) brightness(0.96) hue-rotate(8deg)' },
-  { id: 'vivid',     label: 'Vibrante',   emoji: '🎨', filter: 'saturate(1.9) brightness(1.08) contrast(1.05)' },
+  { id: 'none',       label: 'Normal',     filter: '' },
+  { id: 'clarendon', label: 'Clarendon',  filter: 'brightness(1.1) contrast(1.2) saturate(1.35)' },
+  { id: 'juno',      label: 'Juno',       filter: 'saturate(1.4) contrast(1.1) brightness(1.05) hue-rotate(-10deg)' },
+  { id: 'lark',      label: 'Lark',       filter: 'brightness(1.18) contrast(0.9) saturate(1.1)' },
+  { id: 'aden',      label: 'Aden',       filter: 'sepia(0.2) brightness(1.15) saturate(0.85) hue-rotate(20deg)' },
+  { id: 'cairo',     label: 'Cairo',      filter: 'sepia(0.45) saturate(1.4) contrast(1.08) brightness(0.96) hue-rotate(8deg)' },
+  { id: 'moon',      label: 'Moon',       filter: 'grayscale(1) brightness(1.1) contrast(1.1)' },
+  { id: 'vivid',     label: 'Vibrante',   filter: 'saturate(1.9) brightness(1.08) contrast(1.05)' },
+  { id: 'slumber',   label: 'Slumber',    filter: 'brightness(0.85) saturate(0.8) sepia(0.2) contrast(1.1)' },
+  { id: 'reyes',     label: 'Reyes',      filter: 'sepia(0.3) contrast(0.9) brightness(1.1) saturate(0.75)' },
 ]
 
 function toStr(val: unknown): string {
@@ -369,28 +374,6 @@ export default function Home() {
               <span style={{ color: '#E8782E' }}>30 segundos</span>
             </h1>
             <p className="text-gray-400 text-base">Subí la imagen, la IA genera el texto y la foto. Sin diseñador.</p>
-
-            {/* Pasos explicativos con íconos Lucide */}
-            <div className="grid grid-cols-2 gap-2 mt-7">
-              {[
-                { n: '1', Icon: Upload,    label: 'Subís tu flyer' },
-                { n: '2', Icon: Bot,       label: 'IA analiza y escribe el post' },
-                { n: '3', Icon: ImageIcon, label: 'Elegí la foto que más te guste' },
-                { n: '4', Icon: Palette,   label: 'Elegí el estilo de foto' },
-                { n: '5', Icon: Rocket,    label: 'Publicalo en tus redes' },
-              ].map(({ n, Icon, label }) => (
-                <div
-                  key={n}
-                  className={`bg-white border border-gray-100 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-sm${n === '5' ? ' col-span-2 max-w-[48%] mx-auto w-full' : ''}`}
-                >
-                  <div className="w-10 h-10 rounded-2xl bg-[#E8F4F8] flex items-center justify-center text-[#1A4A5C]">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-black text-gray-300 select-none">{n}</span>
-                  <p className="text-xs font-black text-[#111827] leading-tight text-center">{label}</p>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
@@ -429,6 +412,30 @@ export default function Home() {
                 </div>
               )}
             </div>
+
+            {/* Pasos — solo cuando no hay flyer cargado todavía */}
+            {!flyerPreview && (
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {[
+                  { n: '1', Icon: Upload,    label: 'Subís tu flyer' },
+                  { n: '2', Icon: Bot,       label: 'IA analiza y escribe el post' },
+                  { n: '3', Icon: ImageIcon, label: 'Elegí la foto que más te guste' },
+                  { n: '4', Icon: Palette,   label: 'Elegí el estilo de foto' },
+                  { n: '5', Icon: Rocket,    label: 'Publicalo en tus redes' },
+                ].map(({ n, Icon, label }) => (
+                  <div
+                    key={n}
+                    className={`bg-white border border-gray-100 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-sm${n === '5' ? ' col-span-2 max-w-[48%] mx-auto w-full' : ''}`}
+                  >
+                    <div className="w-10 h-10 rounded-2xl bg-[#E8F4F8] flex items-center justify-center text-[#1A4A5C]">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-black text-gray-200 select-none">{n}</span>
+                    <p className="text-xs font-black text-[#111827] leading-tight text-center">{label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <button
               onClick={processFlyer}
@@ -567,37 +574,52 @@ export default function Home() {
         {/* ── PASO 4: Elegir estilo ── */}
         {uiStep === 'style' && selectedPhoto && result && (
           <div className={`${animClass}`}>
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-[11px] font-black text-[#1A4A5C] tracking-widest mb-1">ELEGÍ UN ESTILO</p>
                 <h2 className="text-2xl font-black">{result.destination}</h2>
               </div>
-              <button onClick={() => goTo('images', 'right')} className="text-gray-400 hover:text-white transition flex items-center gap-1 text-xs">
+              <button onClick={() => goTo('images', 'right')} className="text-gray-400 hover:text-[#1A4A5C] transition flex items-center gap-1 text-xs">
                 <ArrowLeft className="w-3 h-3" /> Volver
               </button>
             </div>
 
-            {/* Foto actual con estilo aplicado — full width */}
-            <div className="relative rounded-3xl overflow-hidden mb-4" style={{ aspectRatio: '3/4' }}>
+            {/* Foto con filtro aplicado — full width */}
+            <div className="rounded-3xl overflow-hidden" style={{ aspectRatio: '3/4' }}>
               <img
                 src={selectedPhoto.thumbnail}
                 alt={result.destination}
-                className="w-full h-full object-cover transition-all duration-500"
+                className="w-full h-full object-cover transition-all duration-400"
                 style={{ filter: selectedStyle.filter }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 px-4">
+            </div>
+
+            {/* Strip de filtros estilo Instagram Stories */}
+            <div className="mt-3 -mx-4 px-4 overflow-x-auto scrollbar-hide">
+              <div className="flex gap-4 pb-2" style={{ width: 'max-content' }}>
                 {STYLES.map(style => (
                   <button
                     key={style.id}
                     onClick={() => setSelectedStyle(style)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all backdrop-blur-md
-                      ${selectedStyle.id === style.id
-                        ? 'bg-white text-black shadow-lg scale-105'
-                        : 'bg-black/40 text-gray-600 hover:bg-black/60 border border-gray-200'
-                      }`}
+                    className="flex flex-col items-center gap-1.5 flex-shrink-0"
                   >
-                    {style.emoji}<br />{style.label}
+                    {/* Círculo con preview del filtro */}
+                    <div className={`w-16 h-16 rounded-full overflow-hidden ring-2 ring-offset-2 ring-offset-[#F8FAFB] transition-all duration-200
+                      ${selectedStyle.id === style.id ? 'ring-[#1A4A5C] scale-110' : 'ring-transparent'}`}
+                    >
+                      <img
+                        src={selectedPhoto.thumbnail}
+                        alt={style.label}
+                        className="w-full h-full object-cover"
+                        style={{ filter: style.filter }}
+                      />
+                    </div>
+                    {/* Label */}
+                    <span className={`text-[10px] font-bold transition-colors ${
+                      selectedStyle.id === style.id ? 'text-[#1A4A5C]' : 'text-gray-400'
+                    }`}>
+                      {style.label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -605,7 +627,7 @@ export default function Home() {
 
             <button
               onClick={() => { setCurrentStep(5); goTo('preview', 'left') }}
-              className="w-full py-4 rounded-2xl font-black text-lg bg-white text-black hover:bg-white/90 transition flex items-center justify-center gap-2 shadow-xl"
+              className="mt-4 w-full py-4 rounded-2xl font-black text-lg bg-[#1A4A5C] text-white hover:bg-[#2A6A82] transition flex items-center justify-center gap-2 shadow-lg"
             >
               Usar este estilo →
             </button>
@@ -673,15 +695,6 @@ export default function Home() {
                   setActiveTab={setActiveTab}
                   onChangeFacebook={setEditedFB}
                   onChangeInstagram={setEditedIG}
-                  imageUrl={selectedPhoto.url}
-                />
-
-                {/* ── Acciones de descarga / compartir ── */}
-                <DownloadShareBar
-                  imageUrl={selectedPhoto.url}
-                  destination={result.destination}
-                  textInstagram={editedIG}
-                  textFacebook={editedFB}
                 />
 
                 {/* ── Botones de publicación social ── */}
@@ -771,76 +784,6 @@ export default function Home() {
           {' · '}© {new Date().getFullYear()}
         </p>
       </footer>
-    </div>
-  )
-}
-
-// ─── DownloadShareBar ────────────────────────────────────────────────────────
-function DownloadShareBar({
-  imageUrl, destination, textInstagram, textFacebook,
-}: {
-  imageUrl: string
-  destination: string
-  textInstagram: string
-  textFacebook: string
-}) {
-  const [igToast, setIgToast] = useState(false)
-  const safeDestination = destination.replace(/[^a-z0-9]/gi, '-').toLowerCase()
-  const downloadUrl = `/api/download-image?url=${encodeURIComponent(imageUrl)}&name=postviajes-${safeDestination}.jpg`
-
-  const handleInstagram = async () => {
-    // 1. Disparar descarga de imagen
-    const a = document.createElement('a')
-    a.href = downloadUrl
-    a.download = `postviajes-${safeDestination}.jpg`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    // 2. Copiar texto de Instagram al portapapeles
-    if (navigator?.clipboard?.writeText) {
-      await navigator.clipboard.writeText(textInstagram || textFacebook).catch(() => {})
-    }
-    // 3. Toast + abrir Instagram después de 1.5s
-    setIgToast(true)
-    setTimeout(() => {
-      setIgToast(false)
-      window.open('https://www.instagram.com', '_blank', 'noopener')
-    }, 1500)
-  }
-
-  return (
-    <div className="mt-4 grid grid-cols-2 gap-3">
-      {/* Descargar foto */}
-      <a
-        href={downloadUrl}
-        download
-        className="flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm
-          bg-gray-50 border border-gray-200 hover:bg-white/10 transition text-gray-700"
-      >
-        <Download className="w-4 h-4 text-gray-500" />
-        Descargar foto
-      </a>
-
-      {/* Subir a Instagram: descarga + copia texto + abre IG */}
-      <button
-        onClick={handleInstagram}
-        className="relative flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm
-          bg-gradient-to-r from-purple-500/15 to-pink-500/15 border border-pink-500/20
-          hover:from-purple-500/25 hover:to-pink-500/25 transition text-pink-300"
-      >
-        {igToast ? (
-          <span className="text-green-400 text-xs font-black">✅ Foto descargada · Texto copiado</span>
-        ) : (
-          <><IgIcon className="w-4 h-4" /> Subir a Instagram</>
-        )}
-      </button>
-
-      {/* Nota aclaratoria Instagram */}
-      {igToast && (
-        <p className="col-span-2 text-center text-[11px] text-gray-400 -mt-1">
-          Abriendo Instagram… pegá el texto al crear tu post
-        </p>
-      )}
     </div>
   )
 }
