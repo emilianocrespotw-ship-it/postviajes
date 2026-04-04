@@ -147,7 +147,7 @@ export default function PricingPage() {
             <p className="text-gray-400 text-sm mb-8">Todo incluido, sin límites</p>
 
             <a
-              href="https://wa.me/5491100000000?text=Hola%2C%20quiero%20contratar%20PostViajes%20Pro"
+              href="https://wa.me/5491121906798?text=Hola%2C%20quiero%20contratar%20PostViajes%20Pro"
               target="_blank"
               rel="noopener noreferrer"
               className="block w-full text-center py-3.5 rounded-2xl font-black text-white bg-[#E8782E] hover:bg-[#d06820] transition shadow-lg shadow-orange-200 mb-8"
@@ -175,7 +175,7 @@ export default function PricingPage() {
             </p>
           </div>
           <a
-            href="https://wa.me/5491100000000?text=Hola%2C%20quiero%20info%20sobre%20planes%20para%20mayoristas"
+            href="https://wa.me/5491121906798?text=Hola%2C%20quiero%20info%20sobre%20planes%20para%20mayoristas"
             target="_blank"
             rel="noopener noreferrer"
             className="flex-shrink-0 bg-[#1A4A5C] hover:bg-[#2A6A82] text-white font-bold px-6 py-3 rounded-2xl transition text-sm whitespace-nowrap"
@@ -212,7 +212,7 @@ export default function PricingPage() {
           Escribinos por WhatsApp y te ayudamos a elegir el plan que mejor le va a tu agencia.
         </p>
         <a
-          href="https://wa.me/5491100000000?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20PostViajes"
+          href="https://wa.me/5491121906798?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20PostViajes"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-block bg-[#25D366] hover:bg-[#20BD5C] text-white font-black px-10 py-5 rounded-2xl text-xl transition shadow-xl shadow-green-100"
