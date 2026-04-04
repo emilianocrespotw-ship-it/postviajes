@@ -350,16 +350,13 @@ export default function Home() {
 
       {/* ── HEADER ── */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-gray-100 shadow-sm">
-        <div className="flex justify-between items-center px-6 py-4 max-w-6xl mx-auto">
-          <div className="flex items-center gap-3">
-            <a href="/" className="text-gray-400 hover:text-[#1A4A5C] transition text-xs font-medium">← Inicio</a>
-            <a href="/" className="font-black tracking-tight text-xl">
-              <span style={{ color: '#E8782E' }}>Post</span><span style={{ color: '#1A4A5C' }}>Viajes</span>
-            </a>
-          </div>
+        <div className="flex justify-between items-center px-4 py-3 max-w-6xl mx-auto">
+          <a href="/" className="font-black tracking-tight text-xl">
+            <span style={{ color: '#E8782E' }}>Post</span><span style={{ color: '#1A4A5C' }}>Viajes</span>
+          </a>
           {session ? (
-            <div className="flex items-center gap-3">
-              <img src={session.user?.image || ''} className="w-8 h-8 rounded-full ring-2 ring-[#1A4A5C]/30" alt="" />
+            <div className="flex items-center gap-2">
+              <img src={session.user?.image || ''} className="w-7 h-7 rounded-full ring-2 ring-[#1A4A5C]/30" alt="" />
               <span className="text-sm text-gray-500 hidden sm:block">{session.user?.name?.split(' ')[0]}</span>
               <button onClick={() => signOut()} className="text-xs text-gray-400 hover:text-gray-700 transition px-2 py-1 rounded-lg hover:bg-gray-100">
                 Salir
@@ -368,9 +365,9 @@ export default function Home() {
           ) : (
             <button
               onClick={() => signIn('facebook')}
-              className="bg-[#1877F2] hover:bg-[#166FE5] text-white px-4 py-2 rounded-xl font-bold transition text-sm flex items-center gap-2"
+              className="bg-[#1877F2] hover:bg-[#166FE5] text-white px-3 py-1.5 rounded-xl font-bold transition text-xs flex items-center gap-1.5"
             >
-              <FbIcon className="w-4 h-4" /> Ingresá con Facebook
+              <FbIcon className="w-3.5 h-3.5" /> Ingresá con Facebook
             </button>
           )}
         </div>
@@ -408,7 +405,7 @@ export default function Home() {
                 <>
                   <img src={flyerPreview} className="w-full h-full object-cover" alt="Flyer" />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
-                    <span className="opacity-0 group-hover:opacity-100 transition text-[#111827] font-bold text-sm bg-black/50 px-4 py-2 rounded-xl backdrop-blur-sm">
+                    <span className="opacity-0 group-hover:opacity-100 transition text-white font-bold text-sm bg-black/60 px-4 py-2 rounded-xl backdrop-blur-sm">
                       Cambiar imagen
                     </span>
                   </div>
