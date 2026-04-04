@@ -281,10 +281,15 @@ export default function Home() {
             await navigator.share({ text })
           }
         } catch {
-          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+          if (navigator?.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text).catch(() => {})
+          }
+          window.open('https://wa.me/', '_blank', 'noopener')
         }
       } else {
-        // Desktop: descarga imagen + copia texto + abre wa.me (dispara "Abrir en WhatsApp")
+        // Desktop: descarga imagen + copia texto al portapapeles + abre wa.me SIN texto
+        // (wa.me sin ?text= igual abre el prompt "Abrir WhatsApp", y los emojis llegan
+        //  perfectos porque vienen del portapapeles, no de la URL)
         const a = document.createElement('a')
         a.href = dlUrl
         a.download = `postviajes-${safeD}.jpg`
@@ -295,7 +300,7 @@ export default function Home() {
           await navigator.clipboard.writeText(text).catch(() => {})
         }
         setTimeout(() => {
-          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+          window.open('https://wa.me/', '_blank', 'noopener')
         }, 500)
       }
       setSocialAction(null)
@@ -779,7 +784,7 @@ export default function Home() {
                   </button>
 
                   <p className="text-[10px] text-gray-400 text-center">
-                    FB e IG: foto descargada + texto copiado. WhatsApp: foto descargada + texto listo para enviar.
+                    FB e IG: foto descargada + texto copiado. WhatsApp desktop: foto descargada + texto copiado → abrí WhatsApp y pegá con Ctrl+V
                   </p>
                 </div>
 
@@ -867,8 +872,11 @@ function PostTextCard({
         return
       } catch { /* fallback abajo */ }
     }
-    // Fallback: wa.me dispara "Abrir en WhatsApp" en desktop
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+    // Fallback: wa.me sin texto (igual abre la app) + texto ya copiado al portapapeles
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text).catch(() => {})
+    }
+    window.open('https://wa.me/', '_blank', 'noopener')
   }
 
   return (
