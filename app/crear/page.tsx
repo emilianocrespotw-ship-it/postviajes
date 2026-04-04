@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import {
   Upload, Bot, Rocket, ArrowLeft,
@@ -112,9 +112,100 @@ function useSwipe(onLeft: () => void, onRight: () => void) {
   return { onTouchStart, onTouchEnd }
 }
 
+// ─── Gate de email ────────────────────────────────────────────────────────────
+function EmailGate({ onConfirm }: { onConfirm: (email: string) => void }) {
+  const [value, setValue] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const email = value.trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Ingresá un email válido')
+      return
+    }
+    setLoading(true)
+    localStorage.setItem('pv_email', email)
+    onConfirm(email)
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFB] flex items-center justify-center px-4">
+      <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 w-full max-w-sm text-center">
+        <div className="w-14 h-14 rounded-2xl bg-[#E8F4F8] flex items-center justify-center mx-auto mb-5">
+          <svg className="w-7 h-7 text-[#1A4A5C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <h2 className="text-xl font-black text-[#111827] mb-2">Empezá gratis</h2>
+        <p className="text-gray-500 text-sm mb-6">5 posts por mes sin costo · Sin contraseña</p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            type="email"
+            placeholder="tu@email.com"
+            value={value}
+            onChange={e => { setValue(e.target.value); setError('') }}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#1A4A5C] text-sm"
+            autoFocus
+          />
+          {error && <p className="text-red-500 text-xs">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-xl font-black text-white bg-[#E8782E] hover:bg-[#d06820] transition disabled:opacity-60"
+          >
+            {loading ? 'Ingresando…' : 'Empezar →'}
+          </button>
+        </form>
+        <p className="text-[10px] text-gray-400 mt-4">
+          Al continuar aceptás los{' '}
+          <a href="/legal" target="_blank" className="underline hover:text-[#1A4A5C]">términos y condiciones</a>
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Modal upgrade ────────────────────────────────────────────────────────────
+function UpgradeModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 w-full max-w-sm text-center">
+        <div className="text-4xl mb-4">🚀</div>
+        <h2 className="text-xl font-black text-[#111827] mb-2">Llegaste al límite</h2>
+        <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+          Usaste los 5 posts gratuitos de este mes. Pasá al Plan Pro para posts ilimitados.
+        </p>
+        <a
+          href="/pricing"
+          className="block w-full py-3.5 rounded-2xl font-black text-white bg-[#E8782E] hover:bg-[#d06820] transition mb-3"
+        >
+          Ver Plan Pro · USD 29/mes →
+        </a>
+        <button
+          onClick={onClose}
+          className="w-full py-3 rounded-2xl font-bold text-gray-400 hover:text-gray-600 text-sm transition"
+        >
+          Volver
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function Home() {
   const { data: session } = useSession()
+
+  // Email gate
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [showUpgrade, setShowUpgrade] = useState(false)
+
+  useEffect(() => {
+    const saved = localStorage.getItem('pv_email')
+    if (saved) setUserEmail(saved)
+  }, [])
 
   const [uiStep, setUiStep] = useState<'upload' | 'processing' | 'images' | 'style' | 'preview'>('upload')
   const [animDir, setAnimDir] = useState<'left' | 'right' | 'up'>('up')
@@ -173,9 +264,15 @@ export default function Home() {
       const res = await fetch('/api/process-flyer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: flyerBase64, mimeType: flyerMime }),
+        body: JSON.stringify({ imageBase64: flyerBase64, mimeType: flyerMime, email: userEmail }),
       })
       const data = await res.json()
+      if (data.code === 'LIMIT_REACHED') {
+        setShowUpgrade(true)
+        goTo('upload', 'right')
+        setCurrentStep(0)
+        return
+      }
       if (!res.ok) throw new Error(data.error || 'Error procesando el flyer')
 
       const normalized: FlyerResult = {
@@ -364,8 +461,11 @@ export default function Home() {
   )
 
   // ─── Render ──────────────────────────────────────────────────────────────────
+  if (!userEmail) return <EmailGate onConfirm={setUserEmail} />
+
   return (
     <div className="min-h-screen bg-[#F8FAFB] text-[#111827] font-sans">
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
 
       {/* ── HEADER ── */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-gray-100 shadow-sm">

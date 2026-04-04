@@ -1,6 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
+
+const FREE_LIMIT = 5
+
+// Registra o recupera usuario y verifica su plan/uso mensual
+async function checkAndTrackUsage(email: string): Promise<{ allowed: boolean; isProUser: boolean; usedCount: number }> {
+  const month = new Date().toISOString().slice(0, 7) // '2026-04'
+
+  // Upsert usuario (crea si no existe)
+  await supabaseAdmin
+    .from('users')
+    .upsert({ email }, { onConflict: 'email', ignoreDuplicates: true })
+
+  // Leer plan del usuario
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('plan')
+    .eq('email', email)
+    .single()
+
+  const isPro = user?.plan === 'pro'
+  if (isPro) return { allowed: true, isProUser: true, usedCount: 0 }
+
+  // Leer o crear registro de uso mensual
+  const { data: usageRow } = await supabaseAdmin
+    .from('usage')
+    .select('count')
+    .eq('email', email)
+    .eq('month', month)
+    .single()
+
+  const currentCount = usageRow?.count ?? 0
+  if (currentCount >= FREE_LIMIT) {
+    return { allowed: false, isProUser: false, usedCount: currentCount }
+  }
+
+  // Incrementar uso
+  await supabaseAdmin
+    .from('usage')
+    .upsert(
+      { email, month, count: currentCount + 1 },
+      { onConflict: 'email,month' }
+    )
+
+  return { allowed: true, isProUser: false, usedCount: currentCount + 1 }
+}
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
@@ -24,9 +69,21 @@ function toStr(val: unknown): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageBase64, mimeType = 'image/jpeg' } = await req.json()
+    const { imageBase64, mimeType = 'image/jpeg', email } = await req.json()
     if (!imageBase64) {
       return NextResponse.json({ error: 'Falta la imagen' }, { status: 400 })
+    }
+
+    // ── Verificar plan y límite de uso ────────────────────────────────────────
+    if (!email) {
+      return NextResponse.json({ error: 'Email requerido', code: 'NO_EMAIL' }, { status: 400 })
+    }
+    const { allowed, isProUser, usedCount } = await checkAndTrackUsage(email)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Límite del plan gratuito alcanzado', code: 'LIMIT_REACHED', usedCount },
+        { status: 403 }
+      )
     }
 
     // ── PASO 1: Extraer datos del flyer con tipos explícitos ──────────────────
@@ -133,7 +190,7 @@ Estilo: rioplatense, entusiasta, máximo 200 palabras por red.`,
 
     // ── Guardar en Supabase (opcional) ────────────────────────────────────────
     try {
-      await supabase.from('flyers').insert([{
+      await supabaseAdmin.from('flyers').insert([{
         destination: toStr(flyer.destination),
         country: toStr(flyer.country),
         text_facebook: toStr(texts.facebook),
@@ -156,6 +213,8 @@ Estilo: rioplatense, entusiasta, máximo 200 palabras por red.`,
       textFacebook:  toStr(texts.facebook),
       textInstagram: toStr(texts.instagram),
       images,
+      isPro: isProUser,
+      usedCount,
     })
 
   } catch (error: any) {
