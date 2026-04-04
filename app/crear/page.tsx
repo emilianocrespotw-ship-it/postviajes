@@ -281,10 +281,17 @@ export default function Home() {
             await navigator.share({ text })
           }
         } catch {
-          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+          // Fallback si Web Share falla: copia texto + abre WhatsApp Web sin parámetro de texto
+          // (evita corrupción de emojis por URL encoding)
+          if (navigator?.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text).catch(() => {})
+          }
+          window.open('https://web.whatsapp.com', '_blank', 'noopener')
         }
       } else {
-        // Desktop: descarga imagen + copia texto + abre WhatsApp Web con texto listo
+        // Desktop: descarga imagen + copia texto al portapapeles + abre WhatsApp Web
+        // NO pasamos el texto por URL porque encodeURIComponent corrompe emojis multi-byte
+        // El texto ya queda en el portapapeles, el usuario lo pega directamente
         const a = document.createElement('a')
         a.href = dlUrl
         a.download = `postviajes-${safeD}.jpg`
@@ -295,7 +302,7 @@ export default function Home() {
           await navigator.clipboard.writeText(text).catch(() => {})
         }
         setTimeout(() => {
-          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+          window.open('https://web.whatsapp.com', '_blank', 'noopener')
         }, 500)
       }
       setSocialAction(null)
@@ -779,7 +786,8 @@ export default function Home() {
                   </button>
 
                   <p className="text-[10px] text-gray-400 text-center">
-                    FB e IG: foto descargada + texto copiado. WhatsApp desktop: foto descargada + texto copiado + WhatsApp Web abierto
+                    FB e IG: foto descargada + texto copiado al portapapeles.<br/>
+                    WhatsApp desktop: foto descargada + texto copiado → pegalo en WhatsApp Web con Ctrl+V
                   </p>
                 </div>
 
@@ -867,8 +875,11 @@ function PostTextCard({
         return
       } catch { /* fallback abajo */ }
     }
-    // Fallback: wa.me con solo texto
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+    // Fallback: copia texto + abre WhatsApp Web (sin parámetro URL para preservar emojis)
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text).catch(() => {})
+    }
+    window.open('https://web.whatsapp.com', '_blank', 'noopener')
   }
 
   return (
