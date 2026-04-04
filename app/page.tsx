@@ -112,6 +112,7 @@ export default function LandingPage() {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-500">
             <a href="#como-funciona" className="hover:text-[#1A4A5C] transition">Cómo funciona</a>
             <a href="#beneficios" className="hover:text-[#1A4A5C] transition">Beneficios</a>
+            <Link href="/pricing" className="hover:text-[#1A4A5C] transition">Precios</Link>
           </nav>
           <Link
             href="/crear"
