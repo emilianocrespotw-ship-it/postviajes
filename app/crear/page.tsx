@@ -4,7 +4,7 @@ import { useSession, signIn, signOut } from 'next-auth/react'
 import {
   Upload, Bot, Rocket, ArrowLeft,
   ChevronLeft, ChevronRight, Copy, Check, Download,
-  Image as ImageIcon,
+  Image as ImageIcon, Palette,
 } from 'lucide-react'
 
 // ─── Brand icons ──────────────────────────────────────────────────────────────
@@ -131,6 +131,7 @@ export default function Home() {
   const [publishResult, setPublishResult] = useState<{ pageName?: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [errorCode, setErrorCode] = useState<string | null>(null)
+  const [socialAction, setSocialAction] = useState<'facebook' | 'instagram' | 'whatsapp' | null>(null)
 
   const goTo = (step: typeof uiStep, dir: typeof animDir = 'left') => {
     setAnimDir(dir)
@@ -250,6 +251,54 @@ export default function Home() {
     }
   }
 
+  const handleSocialPublish = async (network: 'facebook' | 'instagram' | 'whatsapp') => {
+    if (!selectedPhoto || !result) return
+    setSocialAction(network)
+
+    const safeD = result.destination.replace(/[^a-z0-9]/gi, '-').toLowerCase()
+    const dlUrl = `/api/download-image?url=${encodeURIComponent(selectedPhoto.url)}&name=postviajes-${safeD}.jpg`
+
+    if (network === 'whatsapp') {
+      const text = editedIG || result.textInstagram
+      const shareData = { text, url: selectedPhoto.url }
+      if (navigator.share) {
+        try { await navigator.share(shareData) } catch { /* cancelled */ }
+      } else {
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+      }
+      setSocialAction(null)
+      return
+    }
+
+    // Facebook / Instagram: download image + copy text + open network
+    const textToCopy = network === 'facebook'
+      ? (editedFB || result.textFacebook)
+      : (editedIG || result.textInstagram)
+
+    // Download image
+    const a = document.createElement('a')
+    a.href = dlUrl
+    a.download = `postviajes-${safeD}.jpg`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+
+    // Copy text
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(textToCopy).catch(() => {})
+    }
+
+    // Open network
+    setTimeout(() => {
+      window.open(
+        network === 'facebook' ? 'https://www.facebook.com' : 'https://www.instagram.com',
+        '_blank',
+        'noopener'
+      )
+      setSocialAction(null)
+    }, 400)
+  }
+
   const reset = () => {
     setUiStep('upload')
     setAnimDir('right')
@@ -322,22 +371,23 @@ export default function Home() {
             <p className="text-gray-400 text-base">Subí la imagen, la IA genera el texto y la foto. Sin diseñador.</p>
 
             {/* Pasos explicativos con íconos Lucide */}
-            <div className="grid grid-cols-4 gap-2 mt-7 text-left">
+            <div className="grid grid-cols-2 gap-2 mt-7">
               {[
-                { n: '1', Icon: Upload,    label: 'Subís el flyer',  desc: 'JPG, PNG o PDF' },
-                { n: '2', Icon: Bot,       label: 'La IA lo analiza', desc: 'Destino y precio' },
-                { n: '3', Icon: ImageIcon, label: 'Elegís la foto',  desc: 'Del destino exacto' },
-                { n: '4', Icon: Rocket,    label: 'Publicás',        desc: 'IG, FB o WhatsApp' },
-              ].map(({ n, Icon, label, desc }) => (
-                <div key={n} className="bg-white border border-gray-100 rounded-2xl p-3 flex flex-col gap-2 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="w-8 h-8 rounded-xl bg-[#E8F4F8] flex items-center justify-center text-[#1A4A5C]">
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <span className="text-lg font-black text-gray-100 select-none">{n}</span>
+                { n: '1', Icon: Upload,    label: 'Subís tu flyer' },
+                { n: '2', Icon: Bot,       label: 'IA analiza y escribe el post' },
+                { n: '3', Icon: ImageIcon, label: 'Elegí la foto que más te guste' },
+                { n: '4', Icon: Palette,   label: 'Elegí el estilo de foto' },
+                { n: '5', Icon: Rocket,    label: 'Publicalo en tus redes' },
+              ].map(({ n, Icon, label }) => (
+                <div
+                  key={n}
+                  className={`bg-white border border-gray-100 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-sm${n === '5' ? ' col-span-2 max-w-[48%] mx-auto w-full' : ''}`}
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-[#E8F4F8] flex items-center justify-center text-[#1A4A5C]">
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <p className="text-xs font-black text-[#111827] leading-tight">{label}</p>
-                  <p className="text-[10px] text-gray-400 leading-tight">{desc}</p>
+                  <span className="text-xs font-black text-gray-300 select-none">{n}</span>
+                  <p className="text-xs font-black text-[#111827] leading-tight text-center">{label}</p>
                 </div>
               ))}
             </div>
@@ -634,67 +684,54 @@ export default function Home() {
                   textFacebook={editedFB}
                 />
 
-                {/* ── Error al publicar ── */}
-                {error && errorCode !== 'NO_PAGES' && (
-                  <div className="mt-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-4 text-sm">
-                    <p className="font-bold mb-1">❌ Error al publicar</p>
-                    <p className="text-red-400/80">{error}</p>
-                  </div>
-                )}
-
-                {/* Sin páginas de Facebook → flujo ágil */}
-                {errorCode === 'NO_PAGES' && (
-                  <div className="mt-2 rounded-2xl border border-green-500/20 bg-green-500/5 p-4 text-sm">
-                    <p className="font-black text-green-400 mb-1">✅ Foto descargada · Texto copiado</p>
-                    <p className="text-gray-500 text-xs leading-relaxed mb-3">
-                      La publicación directa requiere una <strong className="text-gray-600">Página de Facebook</strong>.
-                      Ya tenés la foto y el texto listos — solo pegá en tu red social favorita.
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <a
-                        href="https://www.facebook.com"
-                        target="_blank"
-                        rel="noopener"
-                        className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-blue-600/20 border border-blue-500/30 text-blue-300 hover:bg-blue-600/30 transition"
-                      >
-                        <FbIcon className="w-3.5 h-3.5" /> Ir a Facebook →
-                      </a>
-                      <a
-                        href="https://www.instagram.com"
-                        target="_blank"
-                        rel="noopener"
-                        className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-pink-600/15 border border-pink-500/25 text-pink-300 hover:bg-pink-600/25 transition"
-                      >
-                        <IgIcon className="w-3.5 h-3.5" /> Ir a Instagram →
-                      </a>
-                    </div>
-                    <button onClick={() => signIn('facebook')} className="mt-3 w-full text-xs text-[#1A4A5C] hover:text-indigo-300 transition">
-                      Tengo una Página de Facebook → reconectá →
-                    </button>
-                  </div>
-                )}
-
-                {/* ── Botón publicar automático (solo para usuarios con Páginas) ── */}
-                <button
-                  onClick={handlePublish}
-                  disabled={!session || publishing}
-                  className="mt-4 w-full py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3
-                    disabled:bg-gray-50 disabled:text-gray-300
-                    bg-green-500 hover:bg-green-400 text-black shadow-2xl shadow-green-500/20"
-                >
-                  {publishing
-                    ? <><div className="animate-spin rounded-full h-5 w-5 border-2 border-black/40 border-t-black" /> Publicando…</>
-                    : session
-                      ? <><Rocket className="w-5 h-5" /> Publicar automáticamente 🚀</>
-                      : '🔒 Conectá Facebook para publicar'
-                  }
-                </button>
-                {!session && (
-                  <button onClick={() => signIn('facebook')} className="mt-3 w-full py-3 rounded-2xl text-sm font-bold border border-gray-200 hover:bg-gray-50 transition">
-                    Conectar Facebook →
+                {/* ── Botones de publicación social ── */}
+                <div className="mt-4 flex flex-col gap-3">
+                  {/* Facebook */}
+                  <button
+                    onClick={() => handleSocialPublish('facebook')}
+                    disabled={socialAction !== null}
+                    className="w-full py-4 rounded-2xl font-black text-base transition-all flex items-center justify-center gap-3
+                      disabled:opacity-60 bg-[#1877F2] hover:bg-[#166FE5] text-white shadow-lg shadow-blue-500/20"
+                  >
+                    {socialAction === 'facebook'
+                      ? <><div className="animate-spin rounded-full h-5 w-5 border-2 border-white/40 border-t-white" /> Preparando…</>
+                      : <><FbIcon className="w-5 h-5" /> Publicá en Facebook</>
+                    }
                   </button>
-                )}
-                <button onClick={reset} className="mt-3 w-full text-gray-300 hover:text-gray-500 text-sm transition">
+
+                  {/* Instagram */}
+                  <button
+                    onClick={() => handleSocialPublish('instagram')}
+                    disabled={socialAction !== null}
+                    className="w-full py-4 rounded-2xl font-black text-base transition-all flex items-center justify-center gap-3
+                      disabled:opacity-60 text-white shadow-lg"
+                    style={{ background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)' }}
+                  >
+                    {socialAction === 'instagram'
+                      ? <><div className="animate-spin rounded-full h-5 w-5 border-2 border-white/40 border-t-white" /> Preparando…</>
+                      : <><IgIcon className="w-5 h-5" /> Publicá en Instagram</>
+                    }
+                  </button>
+
+                  {/* WhatsApp */}
+                  <button
+                    onClick={() => handleSocialPublish('whatsapp')}
+                    disabled={socialAction !== null}
+                    className="w-full py-4 rounded-2xl font-black text-base transition-all flex items-center justify-center gap-3
+                      disabled:opacity-60 bg-[#25D366] hover:bg-[#20BD5C] text-white shadow-lg shadow-green-500/20"
+                  >
+                    {socialAction === 'whatsapp'
+                      ? <><div className="animate-spin rounded-full h-5 w-5 border-2 border-white/40 border-t-white" /> Compartiendo…</>
+                      : <><WaIcon className="w-5 h-5" /> Compartí por WhatsApp</>
+                    }
+                  </button>
+
+                  <p className="text-[10px] text-gray-400 text-center">
+                    Facebook e Instagram: se descarga la foto y se copia el texto automáticamente
+                  </p>
+                </div>
+
+                <button onClick={reset} className="mt-2 w-full text-gray-400 hover:text-gray-600 text-sm transition">
                   Empezar de nuevo
                 </button>
               </>
