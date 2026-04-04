@@ -213,7 +213,7 @@ export default function PricingPage() {
         </p>
         <a
           href="https://wa.me/5491121906798?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20PostViajes"
-          target="_blank"
+         target="_blank"
           rel="noopener noreferrer"
           className="inline-block bg-[#25D366] hover:bg-[#20BD5C] text-white font-black px-10 py-5 rounded-2xl text-xl transition shadow-xl shadow-green-100"
         >

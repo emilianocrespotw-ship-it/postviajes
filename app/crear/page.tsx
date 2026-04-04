@@ -203,9 +203,17 @@ export default function Home() {
   const [showUpgrade, setShowUpgrade] = useState(false)
 
   useEffect(() => {
-    const saved = localStorage.getItem('pv_email')
-    if (saved) setUserEmail(saved)
-  }, [])
+  const saved = localStorage.getItem('pv_email')
+  if (saved) {
+    setUserEmail(saved)
+  } else {
+    // Si no hay mail, le asignamos uno temporal "anonimo" automático
+    // para que Supabase pueda contar sus 5 créditos de prueba
+    const guestId = 'invitado_' + Math.random().toString(36).substr(2, 9)
+    localStorage.setItem('pv_email', guestId)
+    setUserEmail(guestId)
+  }
+}, [])
 
   const [uiStep, setUiStep] = useState<'upload' | 'processing' | 'images' | 'style' | 'preview'>('upload')
   const [animDir, setAnimDir] = useState<'left' | 'right' | 'up'>('up')
