@@ -232,6 +232,7 @@ export default function PricingPage() {
             <Link href="/#como-funciona" className="hover:text-[#1A4A5C] transition">Cómo funciona</Link>
             <Link href="/#beneficios" className="hover:text-[#1A4A5C] transition">Beneficios</Link>
             <Link href="/pricing" className="hover:text-[#1A4A5C] transition">Precios</Link>
+            <Link href="/legal" className="hover:text-[#1A4A5C] transition">Términos</Link>
           </div>
         </div>
       </footer>

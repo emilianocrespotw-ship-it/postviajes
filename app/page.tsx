@@ -276,6 +276,7 @@ export default function LandingPage() {
           <div className="flex gap-5 text-xs text-gray-400">
             <a href="#como-funciona" className="hover:text-[#1A4A5C] transition">Cómo funciona</a>
             <a href="#beneficios" className="hover:text-[#1A4A5C] transition">Beneficios</a>
+            <Link href="/legal" className="hover:text-[#1A4A5C] transition">Términos</Link>
           </div>
         </div>
       </footer>
