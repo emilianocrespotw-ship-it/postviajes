@@ -265,9 +265,22 @@ export default function Home() {
 
     if (network === 'whatsapp') {
       const text = editedIG || result.textInstagram
-      const shareData = { text, url: selectedPhoto.url }
-      if (navigator.share) {
-        try { await navigator.share(shareData) } catch { /* cancelled */ }
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        try {
+          // Intentar compartir con la foto real (archivo)
+          const res = await fetch(dlUrl)
+          const blob = await res.blob()
+          const file = new File([blob], `postviajes-${safeD}.jpg`, { type: 'image/jpeg' })
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], text })
+          } else {
+            // Share sin archivo pero con texto
+            await navigator.share({ text })
+          }
+        } catch {
+          // Si falla (cancelado o sin soporte), caer a wa.me
+          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+        }
       } else {
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
       }
@@ -555,6 +568,9 @@ export default function Home() {
               </>
             )}
 
+            {/* Progreso de pasos */}
+            <StepProgress activeStep={3} />
+
             {/* Preview del texto (expandible) */}
             {result.textInstagram && (
               <div className="mt-4">
@@ -631,6 +647,9 @@ export default function Home() {
             >
               Usar este estilo →
             </button>
+
+            {/* Progreso de pasos */}
+            <StepProgress activeStep={4} />
 
             {result.textInstagram && (
               <div className="mt-4">
@@ -901,6 +920,50 @@ function PostTextCard({
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─── StepProgress ─────────────────────────────────────────────────────────────
+// activeStep: 1=upload 2=procesando 3=images 4=style 5=preview
+function StepProgress({ activeStep }: { activeStep: number }) {
+  const STEP_DEFS = [
+    { n: 1, Icon: Upload,    label: 'Subís tu flyer' },
+    { n: 2, Icon: Bot,       label: 'IA analiza y escribe el post' },
+    { n: 3, Icon: ImageIcon, label: 'Elegí la foto que más te guste' },
+    { n: 4, Icon: Palette,   label: 'Elegí el estilo de foto' },
+    { n: 5, Icon: Rocket,    label: 'Publicalo en tus redes' },
+  ]
+  return (
+    <div className="grid grid-cols-2 gap-2 mt-6">
+      {STEP_DEFS.map(({ n, Icon, label }) => {
+        const done    = n < activeStep
+        const current = n === activeStep
+        return (
+          <div
+            key={n}
+            className={`border rounded-2xl p-4 flex flex-col items-center gap-2 shadow-sm transition-all duration-300
+              ${n === 5 ? 'col-span-2 max-w-[48%] mx-auto w-full' : ''}
+              ${done    ? 'bg-green-50 border-green-200'      : ''}
+              ${current ? 'bg-white border-[#1A4A5C]/20'      : ''}
+              ${!done && !current ? 'bg-white border-gray-100 opacity-50' : ''}`}
+          >
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all
+              ${done    ? 'bg-green-100 text-green-600'   : ''}
+              ${current ? 'bg-[#E8F4F8] text-[#1A4A5C]'  : ''}
+              ${!done && !current ? 'bg-gray-50 text-gray-300' : ''}`}
+            >
+              {done ? <Check className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
+            </div>
+            <span className={`text-xs font-black select-none
+              ${done ? 'text-green-400' : 'text-gray-200'}`}>{n}</span>
+            <p className={`text-xs font-black leading-tight text-center
+              ${done    ? 'text-green-700'  : ''}
+              ${current ? 'text-[#111827]'  : ''}
+              ${!done && !current ? 'text-gray-300' : ''}`}>{label}</p>
+          </div>
+        )
+      })}
     </div>
   )
 }
