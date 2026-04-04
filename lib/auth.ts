@@ -13,13 +13,7 @@ export const authOptions: NextAuthOptions = {
           // para cuentas admin de la app sin necesitar review.
           // Instagram publish por API requiere producto aprobado → lo manejamos
           // manualmente con el botón que descarga + abre Instagram.
-          scope: [
-            'public_profile',
-            'email',
-            'pages_show_list',
-            'pages_manage_posts',
-          ].join(','),
-          auth_type: 'rerequest',
+          scope: 'public_profile',
         },
       },
     }),
