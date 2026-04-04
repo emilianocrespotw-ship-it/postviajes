@@ -167,9 +167,10 @@ export default function LandingPage() {
 
       {/* ── BAND ── */}
       <div className="bg-[#F0F7F9] border-y border-[#dceef4] py-4">
-        <div className="max-w-4xl mx-auto px-6 flex flex-wrap justify-center gap-x-10 gap-y-2 text-sm text-[#1A4A5C] font-medium opacity-70">
+        <div className="max-w-4xl mx-auto px-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-[#1A4A5C] font-medium">
+          <span className="font-bold opacity-50 mr-2">Ideal para:</span>
           {['Agencias de viajes', 'Operadores mayoristas', 'Equipos de ventas', 'Sin diseñador requerido'].map(t => (
-            <span key={t} className="flex items-center gap-1.5">
+            <span key={t} className="flex items-center gap-1.5 opacity-70">
               <span className="text-[#E8782E]">✓</span> {t}
             </span>
           ))}

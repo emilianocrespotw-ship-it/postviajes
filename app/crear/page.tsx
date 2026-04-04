@@ -265,24 +265,38 @@ export default function Home() {
 
     if (network === 'whatsapp') {
       const text = editedIG || result.textInstagram
-      if (typeof navigator !== 'undefined' && navigator.share) {
+      // Detectar móvil: en mobile usamos Web Share API con archivo (foto+texto nativos)
+      // En desktop: descargamos la foto + copiamos texto + abrimos wa.me con el texto
+      const isMobile = typeof window !== 'undefined' &&
+        ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+
+      if (isMobile && typeof navigator !== 'undefined' && navigator.share) {
         try {
-          // Intentar compartir con la foto real (archivo)
           const res = await fetch(dlUrl)
           const blob = await res.blob()
           const file = new File([blob], `postviajes-${safeD}.jpg`, { type: 'image/jpeg' })
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file], text })
           } else {
-            // Share sin archivo pero con texto
             await navigator.share({ text })
           }
         } catch {
-          // Si falla (cancelado o sin soporte), caer a wa.me
           window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
         }
       } else {
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+        // Desktop: descarga imagen + copia texto + abre WhatsApp Web con texto listo
+        const a = document.createElement('a')
+        a.href = dlUrl
+        a.download = `postviajes-${safeD}.jpg`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        if (navigator?.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text).catch(() => {})
+        }
+        setTimeout(() => {
+          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
+        }, 500)
       }
       setSocialAction(null)
       return
@@ -500,7 +514,7 @@ export default function Home() {
 
             {photos.length === 0 ? (
               /* Loading de fotos */
-              <div className="rounded-3xl overflow-hidden bg-white flex items-center justify-center" style={{ aspectRatio: '4/5', maxHeight: '52vh' }}>
+              <div className="rounded-3xl overflow-hidden bg-white flex items-center justify-center w-full" style={{ height: 'clamp(240px, 50vh, 460px)' }}>
                 <div className="text-center text-gray-400">
                   <div className="w-8 h-8 border-2 border-[#1A4A5C] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                   <p className="text-sm">Buscando fotos de {result.destination}…</p>
@@ -508,10 +522,10 @@ export default function Home() {
               </div>
             ) : (
               <>
-                {/* Foto principal — acotada en altura para que el botón quede visible */}
+                {/* Foto principal — altura fija, ancho 100%, object-cover */}
                 <div
-                  className="relative rounded-3xl overflow-hidden mb-3"
-                  style={{ aspectRatio: '4/5', maxHeight: '52vh' }}
+                  className="relative rounded-3xl overflow-hidden mb-3 w-full"
+                  style={{ height: 'clamp(240px, 50vh, 460px)' }}
                   onTouchStart={swipeTouchStart}
                   onTouchEnd={swipeTouchEnd}
                 >
@@ -600,8 +614,8 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Foto con filtro aplicado — acotada en altura para que todo quepa */}
-            <div className="rounded-3xl overflow-hidden" style={{ aspectRatio: '4/5', maxHeight: '50vh' }}>
+            {/* Foto con filtro aplicado — altura fija, ancho 100% */}
+            <div className="rounded-3xl overflow-hidden w-full" style={{ height: 'clamp(220px, 48vh, 440px)' }}>
               <img
                 src={selectedPhoto.thumbnail}
                 alt={result.destination}
@@ -765,7 +779,7 @@ export default function Home() {
                   </button>
 
                   <p className="text-[10px] text-gray-400 text-center">
-                    Facebook e Instagram: se descarga la foto y se copia el texto automáticamente
+                    FB e IG: foto descargada + texto copiado. WhatsApp desktop: foto descargada + texto copiado + WhatsApp Web abierto
                   </p>
                 </div>
 
