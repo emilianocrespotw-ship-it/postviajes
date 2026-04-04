@@ -248,9 +248,9 @@ export default function Home() {
     'animate-fade-up'
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  // Función única para procesar la imagen (venga de donde venga)
+  const processImageFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) return
     setFlyerMime(file.type || 'image/jpeg')
     const reader = new FileReader()
     reader.onloadend = () => {
@@ -261,7 +261,22 @@ export default function Home() {
       setError(null)
     }
     reader.readAsDataURL(file)
+  }, [])
+
+  // Manejador para el Input tradicional (Click / Móvil)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) processImageFile(file)
   }
+
+  // Manejador para PEGAR (PC: Ctrl+V)
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const item = e.clipboardData.items[0]
+    if (item?.type.includes('image')) {
+      const file = item.getAsFile()
+      if (file) processImageFile(file)
+    }
+  }, [processImageFile])
 
   const processFlyer = async () => {
     if (!flyerBase64) return
@@ -472,7 +487,7 @@ export default function Home() {
   //if (!userEmail) return <EmailGate onConfirm={setUserEmail} />
 
   return (
-    <div className="min-h-screen bg-[#F8FAFB] text-[#111827] font-sans">
+  <div onPaste={handlePaste} className="min-h-screen bg-[#F8FAFB] text-[#111827] font-sans">
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
 
       {/* ── HEADER ── */}
