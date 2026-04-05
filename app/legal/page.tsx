@@ -18,7 +18,7 @@ El servicio se ofrece en dos modalidades: un plan gratuito con funcionalidad lim
   },
   {
     title: '2. Contratación del Plan Pro',
-    body: `El Plan Pro tiene un costo de USD 29 (veintinueve dólares estadounidenses) por mes por cuenta. El precio puede ser abonado en pesos argentinos al tipo de cambio vigente al momento del pago, o en dólares según el método acordado.
+    body: `El Plan Pro tiene un costo de USD 19 (veintinueve dólares estadounidenses) premcio promocional por mes por cuenta. El precio puede ser abonado en pesos argentinos al tipo de cambio vigente al momento del pago, o en dólares según el método acordado.
 
 La contratación se realiza a través de WhatsApp u otro canal habilitado por PostViajes. El acceso al Plan Pro se activa una vez confirmado el pago. PostViajes se reserva el derecho de modificar el precio con un aviso previo de al menos 30 días al usuario activo.`,
   },

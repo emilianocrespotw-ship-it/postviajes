@@ -85,7 +85,7 @@ export default function PricingPage() {
 
       {/* ── PLANES ── */}
       <section className="max-w-4xl mx-auto px-6 pb-20">
-        <div className="grid md:grid-cols-2 gap-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
           {/* Plan Gratuito */}
           <div className="border border-gray-200 rounded-3xl p-8 bg-white">
@@ -114,20 +114,17 @@ export default function PricingPage() {
 
           {/* Plan Pro */}
           <div className="border-2 border-[#1A4A5C] rounded-3xl p-8 bg-white relative shadow-xl shadow-[#1A4A5C]/10">
-            {/* Badge */}
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-              <span className="bg-[#E8782E] text-white text-xs font-black px-4 py-1.5 rounded-full tracking-wide shadow-lg">
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-center">
+              <span className="bg-[#E8782E] text-white text-xs font-black px-4 py-1.5 rounded-full tracking-wide shadow-lg whitespace-nowrap">
                 MÁS POPULAR
               </span>
             </div>
 
-            <p className="text-sm font-bold text-[#1A4A5C] tracking-widest mb-3">PRO · AGENCIA</p>
-            <div className="flex items-end gap-3 mb-1">
-              {/* Precio Tachado */}
-              <span className="text-2xl font-bold text-gray-400 line-through mb-1">USD 29</span>
-              {/* Precio Real */}
-              <span className="text-5xl font-black text-[#111827]">USD 19</span>
-              <span className="text-gray-400 mb-2">/mes</span>
+            <p className="text-sm font-bold text-[#1A4A5C] tracking-widest mb-3 uppercase">Pro · Agencia</p>
+            <div className="flex items-end gap-2 flex-wrap mb-1">
+              <span className="text-xl md:text-2xl font-bold text-gray-400 line-through mb-1 whitespace-nowrap">USD 29</span>
+              <span className="text-4xl md:text-5xl font-black text-[#111827] whitespace-nowrap">USD 19</span>
+              <span className="text-gray-400 mb-2 text-sm">/mes</span>
             </div>
             <p className="text-[#E8782E] text-sm font-bold mb-8 italic">
               🔥 ¡Oferta de lanzamiento limitada!
@@ -152,31 +149,13 @@ export default function PricingPage() {
             </ul>
           </div>
         </div>
-
-        {/* Banner mayoristas */}
-        <div className="mt-8 bg-[#F0F7F9] border border-[#dceef4] rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div>
-            <p className="font-black text-[#1A4A5C] text-lg mb-1">¿Sos operador mayorista?</p>
-            <p className="text-gray-500 text-sm leading-relaxed max-w-md">
-              Si querés darle acceso a toda tu red de agencias, tenemos planes especiales por volumen. Hablemos.
-            </p>
-          </div>
-          <a
-            href="https://wa.me/5491121906798?text=Hola%2C%20quiero%20info%20sobre%20planes%20para%20mayoristas"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-shrink-0 bg-[#1A4A5C] hover:bg-[#2A6A82] text-white font-bold px-6 py-3 rounded-2xl transition text-sm whitespace-nowrap"
-          >
-            Consultá por mayoristas →
-          </a>
-        </div>
       </section>
 
       {/* ── FAQ ── */}
       <section className="bg-[#F8FAFB] border-t border-gray-100 py-20">
         <div className="max-w-2xl mx-auto px-6">
           <div className="text-center mb-12">
-            <p className="text-[#E8782E] font-bold text-sm tracking-widest mb-3">PREGUNTAS FRECUENTES</p>
+            <p className="text-[#E8782E] font-bold text-sm tracking-widest mb-3 uppercase">Preguntas frecuentes</p>
             <h2 className="text-3xl font-black text-[#111827]">Todo lo que necesitás saber</h2>
           </div>
           <div className="space-y-4">
@@ -192,15 +171,11 @@ export default function PricingPage() {
 
       {/* ── CTA FINAL ── */}
       <section className="max-w-3xl mx-auto px-6 py-24 text-center">
-        <h2 className="text-3xl md:text-4xl font-black text-[#111827] mb-4">
-          ¿Dudas? Hablemos.
-        </h2>
-        <p className="text-gray-500 text-lg mb-8">
-          Escribinos por WhatsApp y te ayudamos a elegir el plan que mejor le va a tu agencia.
-        </p>
+        <h2 className="text-3xl md:text-4xl font-black text-[#111827] mb-4">¿Dudas? Hablemos.</h2>
+        <p className="text-gray-500 text-lg mb-8">Escribinos por WhatsApp y te ayudamos a elegir el plan que mejor le va a tu agencia.</p>
         <a
           href="https://wa.me/5491121906798?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20PostViajes"
-         target="_blank"
+          target="_blank"
           rel="noopener noreferrer"
           className="inline-block bg-[#25D366] hover:bg-[#20BD5C] text-white font-black px-10 py-5 rounded-2xl text-xl transition shadow-xl shadow-green-100"
         >
@@ -213,13 +188,11 @@ export default function PricingPage() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <Logo />
           <p className="text-gray-400 text-xs text-center">
-            Hecho por <span className="text-gray-600 font-medium">Emiliano Crespo</span> · Fotos: Pexels y Unsplash · © {new Date().getFullYear()}
+            Hecho por <span className="text-gray-600 font-medium">Emiliano Crespo</span> · © {new Date().getFullYear()}
           </p>
           <div className="flex gap-5 text-xs text-gray-400">
-            <Link href="/#como-funciona" className="hover:text-[#1A4A5C] transition">Cómo funciona</Link>
-            <Link href="/#beneficios" className="hover:text-[#1A4A5C] transition">Beneficios</Link>
-            <Link href="/pricing" className="hover:text-[#1A4A5C] transition">Precios</Link>
-            <Link href="/legal" className="hover:text-[#1A4A5C] transition">Términos</Link>
+            <Link href="/pricing" className="hover:text-[#1A4A5C]">Precios</Link>
+            <Link href="/legal" className="hover:text-[#1A4A5C]">Términos</Link>
           </div>
         </div>
       </footer>
