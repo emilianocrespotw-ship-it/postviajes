@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-// ─── Logo SVG (igual al logo 2 simplificado) ──────────────────────────────────
+// ─── Logo (se usa en el footer) ─────────────────────────────────────────────
 function Logo({ className = '' }: { className?: string }) {
   return (
     <span className={`font-black tracking-tight text-xl ${className}`}>
@@ -45,7 +45,6 @@ function IconCheck() {
 function MockupCard() {
   return (
     <div className="relative w-full max-w-sm mx-auto">
-      {/* Flyer de entrada */}
       <div className="absolute -left-6 top-4 w-44 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 rotate-[-6deg] z-10">
         <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl h-24 mb-2 flex items-center justify-center">
           <span className="text-white font-black text-sm text-center leading-tight px-2">CANCÚN<br/>TODO INCLUIDO</span>
@@ -58,14 +57,12 @@ function MockupCard() {
         <p className="text-[9px] text-gray-400 mt-2 text-center font-medium">FLYER OPERADOR</p>
       </div>
 
-      {/* Flecha */}
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
         <div className="w-9 h-9 rounded-full bg-[#E8782E] flex items-center justify-center shadow-lg">
           <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </div>
       </div>
 
-      {/* Post de salida */}
       <div className="ml-auto w-52 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
         <div className="bg-gradient-to-br from-teal-400 to-[#1A4A5C] h-32 relative">
           <div className="absolute bottom-0 left-0 right-0 p-2">
@@ -104,28 +101,10 @@ function MockupCard() {
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white font-sans">
-
-      {/* ── NAVBAR ── */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Logo />
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-500">
-            <a href="#como-funciona" className="hover:text-[#1A4A5C] transition">Cómo funciona</a>
-            <a href="#beneficios" className="hover:text-[#1A4A5C] transition">Beneficios</a>
-            <Link href="/pricing" className="hover:text-[#1A4A5C] transition">Precios</Link>
-          </nav>
-          <Link
-            href="/crear"
-            className="bg-[#1A4A5C] hover:bg-[#2A6A82] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition shadow-sm"
-          >
-            Probá gratis →
-          </Link>
-        </div>
-      </header>
+      {/* El Navbar ya no está acá, está en layout.tsx */}
 
       {/* ── HERO ── */}
       <section className="max-w-6xl mx-auto px-6 pt-20 pb-24 grid md:grid-cols-2 gap-12 items-center">
-        {/* Texto */}
         <div>
           <div className="inline-flex items-center gap-2 bg-[#E8F4F8] text-[#1A4A5C] text-xs font-bold px-3 py-1.5 rounded-full mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-[#E8782E] inline-block" />
@@ -157,7 +136,6 @@ export default function LandingPage() {
           <p className="text-xs text-gray-400 mt-4">Sin tarjeta de crédito · Sin instalación</p>
         </div>
 
-        {/* Mockup visual */}
         <div className="relative hidden md:flex items-center justify-center py-8">
           <div className="absolute inset-0 bg-gradient-to-br from-[#E8F4F8] to-[#FDF0E8] rounded-3xl" />
           <div className="relative z-10 py-12">
@@ -261,7 +239,7 @@ export default function LandingPage() {
           href="/crear"
           className="inline-block bg-[#E8782E] hover:bg-[#d06820] text-white font-black px-10 py-5 rounded-2xl text-xl transition shadow-xl shadow-orange-100"
         >
-          Empezar gratis →
+          Empezá gratis →
         </Link>
         <p className="text-gray-400 text-sm mt-5">Sin registro · Sin tarjeta · Sin límite de tiempo</p>
       </section>

@@ -72,24 +72,6 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-white font-sans">
 
-      {/* ── NAVBAR ── */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/"><Logo /></Link>
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-500">
-            <Link href="/#como-funciona" className="hover:text-[#1A4A5C] transition">Cómo funciona</Link>
-            <Link href="/#beneficios" className="hover:text-[#1A4A5C] transition">Beneficios</Link>
-            <Link href="/pricing" className="text-[#1A4A5C] font-bold">Precios</Link>
-          </nav>
-          <Link
-            href="/crear"
-            className="bg-[#1A4A5C] hover:bg-[#2A6A82] text-white text-sm font-bold px-5 py-2.5 rounded-xl transition shadow-sm"
-          >
-            Probá gratis →
-          </Link>
-        </div>
-      </header>
-
       {/* ── HERO ── */}
       <section className="max-w-3xl mx-auto px-6 pt-20 pb-12 text-center">
         <p className="text-[#E8782E] font-bold text-sm tracking-widest mb-4">PRECIOS</p>
