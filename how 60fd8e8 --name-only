@@ -540,14 +540,13 @@
 [32m+[m[32m                    ))}[m
 [32m+[m[32m                  </div>[m
 [32m+[m
-[32m+[m[32m                  {/* Botón elegir esta foto */}[m
-[32m+[m[32m                  <button[m
-[32m+[m[32m                    onClick={() => handleSelectImage(images[carouselIndex])}[m
-[32m+[m[32m                    className="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-2xl font-bold transition flex items-center justify-center gap-2"[m
-[32m+[m[32m                  >[m
-[32m+[m[32m                    <ImageIcon className="w-5 h-5" />[m
-[32m+[m[32m                    Elegir esta foto →[m
-[32m+[m[32m                  </button>[m
+[32m+[m[32m                  {/* Botón elegir con sombreado mejorado */}
+<button
+  onClick={() => { setSelectedPhoto(currentPhoto); setCurrentStep(4); goTo('style', 'left') }}
+  className="w-full py-4 rounded-2xl font-black text-lg bg-white text-[#1A4A5C] hover:bg-gray-50 transition flex items-center justify-center gap-2 shadow-[0_20px_50px_-12px_rgba(26,74,92,0.25)] border border-gray-100"
+>
+  Elegir esta foto →
+</button>[m
 [32m+[m[32m                </>[m
 [32m+[m[32m              )}[m
              </div>[m

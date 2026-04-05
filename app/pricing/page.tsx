@@ -122,11 +122,16 @@ export default function PricingPage() {
             </div>
 
             <p className="text-sm font-bold text-[#1A4A5C] tracking-widest mb-3">PRO · AGENCIA</p>
-            <div className="flex items-end gap-2 mb-1">
-              <span className="text-5xl font-black text-[#111827]">USD 29</span>
+            <div className="flex items-end gap-3 mb-1">
+              {/* Precio Tachado */}
+              <span className="text-2xl font-bold text-gray-400 line-through mb-1">USD 29</span>
+              {/* Precio Real */}
+              <span className="text-5xl font-black text-[#111827]">USD 19</span>
               <span className="text-gray-400 mb-2">/mes</span>
             </div>
-            <p className="text-gray-400 text-sm mb-8">Todo incluido, sin límites</p>
+            <p className="text-[#E8782E] text-sm font-bold mb-8 italic">
+              🔥 ¡Oferta de lanzamiento limitada!
+            </p>
 
             <a
               href="https://wa.me/5491121906798?text=Hola%2C%20quiero%20contratar%20PostViajes%20Pro"
