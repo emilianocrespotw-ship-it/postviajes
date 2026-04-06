@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
 
-const FREE_LIMIT = 5
+const FREE_LIMIT = 999
 
 // Registra o recupera usuario y verifica su plan/uso mensual
 async function checkAndTrackUsage(email: string): Promise<{ allowed: boolean; isProUser: boolean; usedCount: number }> {
