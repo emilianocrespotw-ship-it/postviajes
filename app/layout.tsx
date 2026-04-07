@@ -1,9 +1,11 @@
+// app/layout.tsx
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import React from 'react'
+import React, { Suspense } from 'react' // Importamos Suspense
 import './globals.css'
 import { Providers } from './providers'
 import Navbar from '../components/Navbar'
+import PostHogPageviewWrapper from './PostHogPageView' // Importamos el nuevo componente
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,6 +23,9 @@ export default function RootLayout({
     <html lang="es">
       <body className={inter.className}>
         <Providers>
+          {/* El rastreador DEBE estar dentro de Providers */}
+          <PostHogPageviewWrapper />
+          
           <Navbar /> 
           {children}
         </Providers>

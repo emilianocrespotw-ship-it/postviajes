@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
+import posthog from "posthog-js"
 import {
   Upload, Bot, Rocket, ArrowLeft,
   ChevronLeft, ChevronRight, Copy, Check,
@@ -255,6 +256,7 @@ export default function Home() {
     const reader = new FileReader()
     reader.onloadend = () => {
       const dataUrl = reader.result as string
+      posthog.capture('flyer_subido')
       setFlyerPreview(dataUrl)
       setFlyerBase64(dataUrl.split(',')[1])
       setCurrentStep(1)
@@ -515,17 +517,17 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto pt-24 pb-20 px-4">
+      <main className="max-w-2xl mx-auto pt-16 pb-20 px-4">
 
         {/* ── HERO ── */}
         {(uiStep === 'upload' || uiStep === 'processing') && (
-          <div className="text-center mb-8 animate-fade-up">
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-3 leading-tight text-[#111827]">
+          <div className="text-center mb-4 animate-fade-up">
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2 leading-tight text-[#111827]">
               Del flyer del operador<br />
               al post listo en{' '}
               <span style={{ color: '#E8782E' }}>30 segundos</span>
             </h1>
-            <p className="text-gray-400 text-base">Subí la imagen, la IA genera el texto y la foto. Sin diseñador.</p>
+            <p className="text-gray-400 text-sm">Subí la imagen, la IA genera el texto y la foto. Sin diseñador.</p>
           </div>
         )}
 
@@ -538,9 +540,9 @@ export default function Home() {
               </div>
             )}
             <div
-              className="relative cursor-pointer group rounded-3xl overflow-hidden mb-4"
+              className={`relative cursor-pointer group rounded-3xl overflow-hidden mb-4${flyerPreview ? '' : ' h-44'}`}
               onClick={() => document.getElementById('file-input')?.click()}
-              style={{ aspectRatio: flyerPreview ? '3/4' : '3/2' }}
+              style={flyerPreview ? { aspectRatio: '3/4' } : undefined}
             >
               <input id="file-input" type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
               {flyerPreview ? (
@@ -553,52 +555,62 @@ export default function Home() {
                   </div>
                 </>
               ) : (
-                <div className="w-full h-full bg-white border-2 border-dashed border-gray-200 group-hover:border-[#1A4A5C]/40 group-hover:bg-[#2A6A82]/5 transition flex flex-col items-center justify-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-[#2A6A82]/10 group-hover:bg-[#2A6A82]/20 transition flex items-center justify-center">
-                    <Upload className="w-6 h-6 text-[#1A4A5C]" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-gray-700">Cargá tu flyer</p>
-                    <p className="text-sm text-gray-400 mt-1">JPG, PNG · arrastrá o hacé click</p>
-                  </div>
-                </div>
+                <div
+  className="w-full h-full bg-white border-2 border-dashed border-gray-200 cursor-pointer flex flex-col items-center justify-center gap-3"
+  onClick={() => {
+    posthog.capture('click_cargar_flyer')
+  }}
+>
+  <div className="w-14 h-14 rounded-2xl bg-[#2A6A82]/10 group-hover:bg-[#2A6A82]/20 flex items-center justify-center">
+    <Upload className="w-6 h-6 text-[#1AA45C]" />
+  </div>
+
+  <div className="text-center">
+    <p className="font-bold text-gray-700">Cargá tu flyer</p>
+    <p className="text-sm text-gray-400 mt-1">JPG, PNG · arrastrá o hacé click</p>
+  </div>
+</div>
               )}
             </div>
 
             {/* Pasos — solo cuando no hay flyer cargado todavía */}
             {!flyerPreview && (
-              <div className="grid grid-cols-2 gap-2 mb-4">
+              <div className="grid grid-cols-5 gap-2 mb-4">
                 {[
                   { n: '1', Icon: Upload,    label: 'Subís tu flyer' },
                   { n: '2', Icon: Bot,       label: 'IA analiza y escribe el post' },
-                  { n: '3', Icon: ImageIcon, label: 'Elegí la foto que más te guste' },
-                  { n: '4', Icon: Palette,   label: 'Elegí el estilo de foto' },
-                  { n: '5', Icon: Rocket,    label: 'Publicalo en tus redes' },
+                  { n: '3', Icon: ImageIcon, label: 'Elegí la foto' },
+                  { n: '4', Icon: Palette,   label: 'Elegí el estilo' },
+                  { n: '5', Icon: Rocket,    label: 'Publicalo en redes' },
                 ].map(({ n, Icon, label }) => (
                   <div
                     key={n}
-                    className={`bg-white border border-gray-100 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-sm${n === '5' ? ' col-span-2 max-w-[48%] mx-auto w-full' : ''}`}
+                    className="bg-white border border-gray-100 rounded-2xl p-2.5 flex flex-col items-center gap-1.5 shadow-sm"
                   >
-                    <div className="w-10 h-10 rounded-2xl bg-[#E8F4F8] flex items-center justify-center text-[#1A4A5C]">
-                      <Icon className="w-5 h-5" />
+                    <div className="w-8 h-8 rounded-xl bg-[#E8F4F8] flex items-center justify-center text-[#1A4A5C]">
+                      <Icon className="w-4 h-4" />
                     </div>
-                    <span className="text-xs font-black text-gray-200 select-none">{n}</span>
-                    <p className="text-xs font-black text-[#111827] leading-tight text-center">{label}</p>
+                    <span className="text-[10px] font-black text-gray-200 select-none">{n}</span>
+                    <p className="text-[10px] font-black text-[#111827] leading-tight text-center">{label}</p>
                   </div>
                 ))}
               </div>
             )}
 
             <button
-              onClick={processFlyer}
-              disabled={!flyerBase64}
-              className="w-full py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3
-                disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed
-                bg-[#E8782E] hover:bg-[#D46B25] text-white shadow-2xl shadow-[#E8782E]/30"
-            >
-              <Bot className="w-5 h-5" />
-              Generá tu post con IA ✨
-            </button>
+  onClick={() => {
+    posthog.capture('click_generar_post')
+    processFlyer()
+  }}
+  disabled={!flyerBase64}
+  className="w-full py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2
+    disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed disabled:shadow-none
+    bg-[#E8782E] hover:bg-[#D46B25] text-white shadow-2xl shadow-[#E8782E]/30"
+>
+  <Bot className="w-5 h-5" />
+  Generá tu post con IA ✨
+</button>
+
           </div>
         )}
 
@@ -868,16 +880,20 @@ export default function Home() {
                 <div className="mt-4 flex flex-col gap-3">
                   {/* Facebook */}
                   <button
-                    onClick={() => handleSocialPublish('facebook')}
-                    disabled={socialAction !== null}
-                    className="w-full py-4 rounded-2xl font-black text-base transition-all flex items-center justify-center gap-3
-                      disabled:opacity-60 bg-[#1877F2] hover:bg-[#166FE5] text-white shadow-lg shadow-blue-500/20"
-                  >
-                    {socialAction === 'facebook'
-                      ? <><div className="animate-spin rounded-full h-5 w-5 border-2 border-white/40 border-t-white" /> Preparando…</>
-                      : <><FbIcon className="w-5 h-5" /> Publicá en Facebook</>
-                    }
-                  </button>
+  onClick={() => {
+    posthog.capture('click_publicar_facebook')
+    handleSocialPublish('facebook')
+  }}
+  disabled={socialAction != null}
+  className="w-full py-4 rounded-2xl font-black text-base transition-all flex items-center justify-center gap-3
+             disabled:opacity-60 bg-[#1877F2] hover:bg-[#166FE5] text-white shadow-lg"
+>
+  {socialAction === 'facebook'
+    ? <><div className="animate-spin rounded-full h-5 w-5 border-2 border-white"></div></>
+    : <><FbIcon className="w-5 h-5" /> Publicá en Facebook</>
+  }
+</button>
+
 
                   {/* Instagram */}
                   <button
@@ -1048,26 +1064,16 @@ function PostTextCard({
         )}
 
         {/* ── Acciones ── */}
-        <div className="flex gap-2 mt-3">
+        <div className="flex mt-3">
           {/* Copiar */}
           <button
             onClick={() => copy(text)}
-            className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-gray-50 hover:bg-white/10 transition flex-1 justify-center"
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 transition justify-center"
           >
             {copied
               ? <><Check className="w-3.5 h-3.5 text-green-400" /><span className="text-green-400">Copiado</span></>
               : <><Copy className="w-3.5 h-3.5 text-gray-500" /><span className="text-gray-500">Copiar</span></>
             }
-          </button>
-
-          {/* WhatsApp */}
-          <button
-            onClick={shareWhatsApp}
-            disabled={!text}
-            className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] transition disabled:opacity-30 flex-1 justify-center border border-[#25D366]/20"
-          >
-            <WaIcon className="w-3.5 h-3.5" />
-            WhatsApp
           </button>
         </div>
       </div>
@@ -1115,6 +1121,34 @@ function StepProgress({ activeStep }: { activeStep: number }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ─── FlyerOverlay ─────────────────────────────────────────────────────────────
+// Componente para la capa visual sobre la foto
+function FlyerOverlay({ destination, price }: { destination: string; price: string }) {
+  return (
+    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6">
+      {/* Logo en la esquina superior */}
+      <div className="flex justify-start">
+        <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1">
+          <span className="font-black text-xs tracking-tighter" style={{ color: '#E8782E' }}>Post</span>
+          <span className="font-black text-xs tracking-tighter" style={{ color: '#1A4A5C' }}>Viajes</span>
+        </div>
+      </div>
+
+      {/* Info de destino y precio abajo con gradiente para legibilidad */}
+      <div className="bg-gradient-to-t from-black/90 via-black/40 to-transparent -mx-6 -mb-6 p-8">
+        <h3 className="text-white font-black text-2xl uppercase leading-none mb-2 tracking-tight">
+          {destination}
+        </h3>
+        <div className="inline-block bg-[#E8782E] px-3 py-1 rounded-lg">
+          <p className="text-white font-black text-lg leading-none">
+            {price}
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
