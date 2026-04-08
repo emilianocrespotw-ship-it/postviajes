@@ -18,6 +18,10 @@ create table if not exists usage (
   unique(email, month)
 );
 
+-- Columnas de agencia para overlay en posts (correr si ya tenés la tabla)
+alter table users add column if not exists agency_name text;
+alter table users add column if not exists logo_data text; -- base64 data URL del logo
+
 -- Índices para performance
 create index if not exists usage_email_month on usage(email, month);
 

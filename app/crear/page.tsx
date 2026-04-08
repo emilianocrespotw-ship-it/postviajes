@@ -68,6 +68,19 @@ const STYLES = [
   { id: 'reyes',     label: 'Reyes',      filter: 'sepia(0.3) contrast(0.9) brightness(1.1) saturate(0.75)' },
 ]
 
+// Formatea fecha de salida como "Salida 05 de julio"
+function formatSalida(dates: string): string {
+  const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']
+  // DD/MM/YYYY o DD-MM-YYYY
+  const m = dates.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/)
+  if (m) {
+    const day = m[1].padStart(2, '0')
+    const mi = parseInt(m[2]) - 1
+    if (mi >= 0 && mi < 12) return `Salida ${day} de ${months[mi]}`
+  }
+  return `Salida ${dates}`
+}
+
 function toStr(val: unknown): string {
   if (val === null || val === undefined) return ''
   if (typeof val === 'string') return val
@@ -216,7 +229,7 @@ export default function Home() {
   }
 }, [])
 
-  const [uiStep, setUiStep] = useState<'upload' | 'processing' | 'images' | 'style' | 'preview'>('upload')
+  const [uiStep, setUiStep] = useState<'upload' | 'processing' | 'images' | 'style' | 'overlay' | 'preview'>('upload')
   const [animDir, setAnimDir] = useState<'left' | 'right' | 'up'>('up')
   const [currentStep, setCurrentStep] = useState(0)
 
@@ -237,6 +250,141 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [socialAction, setSocialAction] = useState<'facebook' | 'instagram' | 'whatsapp' | null>(null)
+
+  // ── Agencia / overlay ──────────────────────────────────────────────────────
+  const [agencyLogo, setAgencyLogo] = useState<string | null>(null)
+  const [agencyName, setAgencyName] = useState('')
+  const [overlayEnabled, setOverlayEnabled] = useState(true)
+  const [savingAgency, setSavingAgency] = useState(false)
+
+  // Cargar datos de agencia cuando hay sesión
+  useEffect(() => {
+    if (session?.user?.email) {
+      fetch('/api/agency')
+        .then(r => r.json())
+        .then(d => {
+          if (d.logo_data) setAgencyLogo(d.logo_data)
+          if (d.agency_name) setAgencyName(d.agency_name)
+        })
+        .catch(() => {})
+    }
+  }, [session?.user?.email])
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    // Comprimir a max 400px de alto usando canvas antes de guardar
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const src = ev.target?.result as string
+      const img = new window.Image()
+      img.onload = () => {
+        const maxH = 400
+        const scale = img.height > maxH ? maxH / img.height : 1
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+        const compressed = canvas.toDataURL('image/png')
+        setAgencyLogo(compressed)
+        if (session?.user?.email) {
+          setSavingAgency(true)
+          fetch('/api/agency', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ logo_data: compressed, agency_name: agencyName }),
+          }).finally(() => setSavingAgency(false))
+        }
+      }
+      img.src = src
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // Genera imagen compuesta (foto + filtro + overlay) como dataURL
+  const generateOverlayCanvas = (): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      if (!selectedPhoto || !result) return reject('Sin datos')
+
+      const SIZE_W = 1080
+      const SIZE_H = 1350 // ratio 4:5 ideal para Instagram/Facebook
+      const canvas = document.createElement('canvas')
+      canvas.width = SIZE_W
+      canvas.height = SIZE_H
+      const ctx = canvas.getContext('2d')!
+
+      const img = new window.Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => {
+        // Dibujar foto con filtro CSS
+        ctx.filter = selectedStyle.filter || 'none'
+        const scale = Math.max(SIZE_W / img.width, SIZE_H / img.height)
+        const dx = (SIZE_W - img.width * scale) / 2
+        const dy = (SIZE_H - img.height * scale) / 2
+        ctx.drawImage(img, dx, dy, img.width * scale, img.height * scale)
+        ctx.filter = 'none'
+
+        if (overlayEnabled) {
+          // Gradiente oscuro arriba
+          const grad = ctx.createLinearGradient(0, 0, 0, SIZE_H * 0.62)
+          grad.addColorStop(0, 'rgba(0,0,0,0.80)')
+          grad.addColorStop(1, 'rgba(0,0,0,0)')
+          ctx.fillStyle = grad
+          ctx.fillRect(0, 0, SIZE_W, SIZE_H)
+
+          // Destino — centrado arriba, serif bold uppercase
+          const destText = result.destination.toUpperCase()
+          ctx.fillStyle = 'white'
+          ctx.font = '900 80px Georgia, serif'
+          ctx.textAlign = 'center'
+          ctx.letterSpacing = '8px'
+          ctx.fillText(destText, SIZE_W / 2, 130)
+
+          // Fecha discreta
+          if (result.dates) {
+            ctx.font = '300 38px Georgia, serif'
+            ctx.fillStyle = 'rgba(255,255,255,0.65)'
+            ctx.letterSpacing = '4px'
+            ctx.fillText(formatSalida(result.dates).toUpperCase(), SIZE_W / 2, 192)
+          }
+          ctx.textAlign = 'left'
+          ctx.letterSpacing = '0px'
+
+          // Logo abajo a la derecha — badge blanco sólido
+          const drawFinal = () => resolve(canvas.toDataURL('image/jpeg', 0.92))
+          if (agencyLogo) {
+            const logoImg = new window.Image()
+            logoImg.onload = () => {
+              const logoH = 180
+              const logoW = Math.round((logoImg.width / logoImg.height) * logoH)
+              const pad = 24
+              const bx = SIZE_W - logoW - pad * 2 - 40
+              const by = SIZE_H - logoH - pad * 2 - 40
+              // Badge blanco sólido
+              ctx.fillStyle = 'white'
+              ctx.beginPath()
+              ctx.roundRect(bx, by, logoW + pad * 2, logoH + pad * 2, 24)
+              ctx.fill()
+              ctx.drawImage(logoImg, bx + pad, by + pad, logoW, logoH)
+              drawFinal()
+            }
+            logoImg.onerror = drawFinal
+            logoImg.src = agencyLogo
+          } else {
+            drawFinal()
+          }
+        } else {
+          resolve(canvas.toDataURL('image/jpeg', 0.92))
+        }
+      }
+      img.onerror = reject
+      // Usar proxy para evitar CORS con fotos externas
+      const proxyUrl = `/api/download-image?url=${encodeURIComponent(selectedPhoto.url)}&name=tmp.jpg`
+      img.src = proxyUrl
+    })
+  }
 
   const goTo = (step: typeof uiStep, dir: typeof animDir = 'left') => {
     setAnimDir(dir)
@@ -383,7 +531,15 @@ export default function Home() {
     setSocialAction(network)
 
     const safeD = result.destination.replace(/[^a-z0-9]/gi, '-').toLowerCase()
-    const dlUrl = `/api/download-image?url=${encodeURIComponent(selectedPhoto.url)}&name=postviajes-${safeD}.jpg`
+
+    // Si el overlay está activo, generamos la imagen compuesta; sino usamos la original
+    let dlUrl = `/api/download-image?url=${encodeURIComponent(selectedPhoto.url)}&name=postviajes-${safeD}.jpg`
+    let overlayDataUrl: string | null = null
+    if (overlayEnabled && (agencyLogo || result.destination)) {
+      try {
+        overlayDataUrl = await generateOverlayCanvas()
+      } catch { /* si falla el canvas, usa la imagen original */ }
+    }
 
     if (network === 'whatsapp') {
       const text = editedIG || result.textInstagram
@@ -392,10 +548,20 @@ export default function Home() {
       const isMobile = typeof window !== 'undefined' &&
         ('ontouchstart' in window || navigator.maxTouchPoints > 0)
 
+      // Helper: descarga el archivo correcto (canvas o URL original)
+      const getBlob = async (): Promise<Blob> => {
+        if (overlayDataUrl) {
+          const res = await fetch(overlayDataUrl)
+          return res.blob()
+        }
+        const res = await fetch(dlUrl)
+        return res.blob()
+      }
+      const getHref = () => overlayDataUrl || dlUrl
+
       if (isMobile && typeof navigator !== 'undefined' && navigator.share) {
         try {
-          const res = await fetch(dlUrl)
-          const blob = await res.blob()
+          const blob = await getBlob()
           const file = new File([blob], `postviajes-${safeD}.jpg`, { type: 'image/jpeg' })
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file], text })
@@ -409,11 +575,8 @@ export default function Home() {
           window.open('https://wa.me/', '_blank', 'noopener')
         }
       } else {
-        // Desktop: descarga imagen + copia texto al portapapeles + abre wa.me SIN texto
-        // (wa.me sin ?text= igual abre el prompt "Abrir WhatsApp", y los emojis llegan
-        //  perfectos porque vienen del portapapeles, no de la URL)
         const a = document.createElement('a')
-        a.href = dlUrl
+        a.href = getHref()
         a.download = `postviajes-${safeD}.jpg`
         document.body.appendChild(a)
         a.click()
@@ -434,9 +597,9 @@ export default function Home() {
       ? (editedFB || result.textFacebook)
       : (editedIG || result.textInstagram)
 
-    // Download image
+    // Download image (compuesta con overlay, o la original)
     const a = document.createElement('a')
-    a.href = dlUrl
+    a.href = overlayDataUrl || dlUrl
     a.download = `postviajes-${safeD}.jpg`
     document.body.appendChild(a)
     a.click()
@@ -802,7 +965,7 @@ export default function Home() {
             </div>
 
             <button
-              onClick={() => { setCurrentStep(5); goTo('preview', 'left') }}
+              onClick={() => { setCurrentStep(5); goTo('overlay', 'left') }}
               className="mt-4 w-full py-4 rounded-2xl font-black text-lg bg-[#1A4A5C] text-white hover:bg-[#2A6A82] transition flex items-center justify-center gap-2 shadow-lg"
             >
               Usar este estilo →
@@ -823,6 +986,110 @@ export default function Home() {
                 />
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── PASO 4.5: Overlay / marca de agencia ── */}
+        {uiStep === 'overlay' && result && selectedPhoto && (
+          <div className={`${animClass}`}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-[11px] font-black text-[#E8782E] tracking-widest mb-1">TU MARCA EN LA FOTO</p>
+                <h2 className="text-2xl font-black">{result.destination}</h2>
+              </div>
+              <button onClick={() => goTo('style', 'right')} className="text-gray-400 hover:text-[#1A4A5C] transition flex items-center gap-1 text-xs">
+                <ArrowLeft className="w-3 h-3" /> Volver
+              </button>
+            </div>
+
+            {/* Preview del overlay sobre la foto */}
+            <div className="relative rounded-3xl overflow-hidden w-full mb-4" style={{ aspectRatio: '4/5' }}>
+              <img
+                src={selectedPhoto.thumbnail}
+                alt={result.destination}
+                className="w-full h-full object-cover"
+                style={{ filter: selectedStyle.filter }}
+              />
+              {overlayEnabled && (
+                <>
+                  {/* Gradiente oscuro arriba */}
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, transparent 68%)' }}
+                  />
+                  {/* Destino centrado + fecha — arriba */}
+                  <div className="absolute top-8 left-0 right-0 text-white text-center px-4 drop-shadow-lg">
+                    <p
+                      className="uppercase tracking-widest leading-tight"
+                      style={{ fontFamily: 'var(--font-playfair), Georgia, serif', fontSize: 'clamp(22px, 6vw, 36px)', fontWeight: 900 }}
+                    >
+                      {result.destination}
+                    </p>
+                    {result.dates && (
+                      <p className="text-xs tracking-wider mt-1.5 opacity-70 font-light uppercase">
+                        {formatSalida(result.dates)}
+                      </p>
+                    )}
+                  </div>
+                  {/* Logo abajo a la derecha — badge blanco sólido */}
+                  {agencyLogo && (
+                    <div
+                      className="absolute bottom-4 right-4 bg-white rounded-2xl px-3 py-2 shadow-xl flex items-center justify-center"
+                    >
+                      <img src={agencyLogo} alt="Logo" className="h-20 w-auto max-w-[192px] object-contain" />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Toggle overlay */}
+            <button
+              onClick={() => setOverlayEnabled(e => !e)}
+              className={`w-full py-2 rounded-xl text-xs font-bold mb-3 transition border ${overlayEnabled ? 'border-[#1A4A5C] text-[#1A4A5C] bg-[#1A4A5C]/5' : 'border-gray-200 text-gray-400'}`}
+            >
+              {overlayEnabled ? '✓ Con logo' : 'Sin logo'}
+            </button>
+
+            {/* Sección de logo de agencia */}
+            {!session ? (
+              <div className="bg-white rounded-2xl p-4 mb-3 text-center border border-gray-100">
+                <p className="text-sm text-gray-500 mb-3">Iniciá sesión para guardar tu logo y que aparezca en todos tus posts automáticamente</p>
+                <button
+                  onClick={() => signIn('facebook')}
+                  className="bg-[#1877F2] hover:bg-[#166FE5] text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 mx-auto"
+                >
+                  <FbIcon className="w-4 h-4" /> Iniciá sesión con Facebook
+                </button>
+              </div>
+            ) : agencyLogo ? (
+              <div className="bg-white rounded-2xl px-4 py-3 mb-3 flex items-center gap-3 border border-gray-100">
+                <img src={agencyLogo} alt="Logo" className="h-8 w-auto object-contain" />
+                <span className="text-sm text-gray-500 flex-1">Logo guardado{savingAgency ? ' · guardando…' : ''}</span>
+                <label className="text-xs text-[#1A4A5C] font-bold cursor-pointer hover:underline">
+                  Cambiar
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                </label>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl p-4 mb-3 border border-gray-100">
+                <p className="text-sm font-bold text-gray-700 mb-1">Agregá el logo de tu agencia</p>
+                <p className="text-xs text-gray-400 mb-3">Se guarda y aparece solo en todos tus posts</p>
+                <label className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-dashed border-[#1A4A5C]/30 text-[#1A4A5C] font-bold text-sm cursor-pointer hover:border-[#1A4A5C]/60 transition">
+                  <Upload className="w-4 h-4" /> Subir logo (PNG/JPG)
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                </label>
+              </div>
+            )}
+
+            <button
+              onClick={() => { setCurrentStep(5); goTo('preview', 'left') }}
+              className="w-full py-4 rounded-2xl font-black text-lg bg-[#E8782E] hover:bg-[#D46B25] text-white transition flex items-center justify-center gap-2 shadow-lg shadow-[#E8782E]/20"
+            >
+              Continuar →
+            </button>
+
+            <StepProgress activeStep={5} />
           </div>
         )}
 
@@ -851,19 +1118,45 @@ export default function Home() {
                       {result.price && <span className="text-green-400 text-sm font-bold">💵 {result.price}</span>}
                     </div>
                   </div>
-                  <button onClick={() => goTo('style', 'right')} className="text-gray-400 hover:text-white transition flex items-center gap-1 text-xs mt-1">
+                  <button onClick={() => goTo('overlay', 'right')} className="text-gray-400 hover:text-white transition flex items-center gap-1 text-xs mt-1">
                     <ArrowLeft className="w-3 h-3" /> Volver
                   </button>
                 </div>
 
-                {/* Foto con filtro — full width */}
-                <div className="rounded-3xl overflow-hidden mb-4" style={{ aspectRatio: '3/4' }}>
+                {/* Foto con filtro + overlay (igual que en el paso anterior) */}
+                <div className="relative rounded-3xl overflow-hidden mb-4" style={{ aspectRatio: '4/5' }}>
                   <img
                     src={selectedPhoto.thumbnail}
                     alt={result.destination}
                     className="w-full h-full object-cover"
                     style={{ filter: selectedStyle.filter }}
                   />
+                  {overlayEnabled && (
+                    <>
+                      <div
+                        className="absolute inset-0"
+                        style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, transparent 68%)' }}
+                      />
+                      <div className="absolute top-8 left-0 right-0 text-white text-center px-4 drop-shadow-lg">
+                        <p
+                          className="uppercase tracking-widest leading-tight"
+                          style={{ fontFamily: 'var(--font-playfair), Georgia, serif', fontSize: 'clamp(22px, 6vw, 36px)', fontWeight: 900 }}
+                        >
+                          {result.destination}
+                        </p>
+                        {result.dates && (
+                          <p className="text-xs tracking-wider mt-1.5 opacity-70 font-light uppercase">
+                            {formatSalida(result.dates)}
+                          </p>
+                        )}
+                      </div>
+                      {agencyLogo && (
+                        <div className="absolute bottom-4 right-4 bg-white rounded-2xl px-3 py-2 shadow-xl flex items-center justify-center">
+                          <img src={agencyLogo} alt="Logo" className="h-20 w-auto max-w-[192px] object-contain" />
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Texto del post */}

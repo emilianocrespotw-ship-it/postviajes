@@ -1,6 +1,7 @@
 // app/layout.tsx
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { playfair } from '@/lib/fonts'
 import React, { Suspense } from 'react' // Importamos Suspense
 import './globals.css'
 import { Providers } from './providers'
@@ -21,7 +22,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={inter.className}>
+      <body className={`${inter.className} ${playfair.variable}`}>
         <Providers>
           {/* El rastreador DEBE estar dentro de Providers */}
           <PostHogPageviewWrapper />
