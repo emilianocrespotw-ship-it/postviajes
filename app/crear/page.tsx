@@ -327,43 +327,37 @@ export default function Home() {
         ctx.filter = 'none'
 
         if (overlayEnabled) {
-          // Sombra radial suave detrás del texto
-          const cx = SIZE_W / 2, cy = SIZE_H / 2
-          const rad = ctx.createRadialGradient(cx, cy, 0, cx, cy, SIZE_W * 0.6)
-          rad.addColorStop(0, 'rgba(0,0,0,0.48)')
-          rad.addColorStop(1, 'rgba(0,0,0,0)')
-          ctx.fillStyle = rad
-          ctx.fillRect(0, 0, SIZE_W, SIZE_H)
+          const PHOTO_H = Math.round(SIZE_H * 0.78)
+          const BANNER_H = SIZE_H - PHOTO_H
 
-          // Destino — centrado vertical y horizontal, Unbounded-style
-          const destText = result.destination.toUpperCase()
+          // Banner blanco abajo
           ctx.fillStyle = 'white'
-          ctx.shadowColor = 'rgba(0,0,0,0.5)'
-          ctx.shadowBlur = 24
-          ctx.font = '900 96px sans-serif'
+          ctx.fillRect(0, PHOTO_H, SIZE_W, BANNER_H)
+
+          // Destino — centrado en el banner, negro, bold
+          const destText = result.destination.toUpperCase()
+          ctx.fillStyle = '#111827'
+          ctx.font = '900 86px sans-serif'
           ctx.textAlign = 'center'
-          ctx.fillText(destText, SIZE_W / 2, SIZE_H / 2 - 20)
+          ctx.fillText(destText, SIZE_W / 2, PHOTO_H + BANNER_H * 0.52)
 
-          // Fecha + precio
+          // Fecha + precio — debajo, gris
           const subLine = `${formatSalida(result.dates)}${result.price ? ` — ${result.price}` : ''}`.toUpperCase()
-          ctx.font = '700 42px sans-serif'
-          ctx.fillStyle = 'rgba(255,255,255,0.90)'
-          ctx.shadowBlur = 12
-          ctx.fillText(subLine, SIZE_W / 2, SIZE_H / 2 + 60)
-
-          ctx.shadowBlur = 0
+          ctx.font = '600 36px sans-serif'
+          ctx.fillStyle = '#6b7280'
+          ctx.fillText(subLine, SIZE_W / 2, PHOTO_H + BANNER_H * 0.82)
           ctx.textAlign = 'left'
 
-          // Logo abajo a la derecha — solo drop shadow
+          // Logo arriba a la derecha sobre la foto
           const drawFinal = () => resolve(canvas.toDataURL('image/jpeg', 0.92))
           if (agencyLogo) {
             const logoImg = new window.Image()
             logoImg.onload = () => {
-              const logoH = 180
+              const logoH = 140
               const logoW = Math.round((logoImg.width / logoImg.height) * logoH)
-              ctx.shadowColor = 'rgba(0,0,0,0.4)'
-              ctx.shadowBlur = 16
-              ctx.drawImage(logoImg, SIZE_W - logoW - 48, SIZE_H - logoH - 48, logoW, logoH)
+              ctx.shadowColor = 'rgba(0,0,0,0.35)'
+              ctx.shadowBlur = 14
+              ctx.drawImage(logoImg, SIZE_W - logoW - 40, 36, logoW, logoH)
               ctx.shadowBlur = 0
               drawFinal()
             }
@@ -1000,41 +994,40 @@ export default function Home() {
             </div>
 
             {/* Preview del overlay sobre la foto */}
-            <div className="relative rounded-3xl overflow-hidden w-full mb-4" style={{ aspectRatio: '4/5' }}>
-              <img
-                src={selectedPhoto.thumbnail}
-                alt={result.destination}
-                className="w-full h-full object-cover"
-                style={{ filter: selectedStyle.filter }}
-              />
-              {overlayEnabled && (
-                <>
-                  {/* Sombra suave detrás del texto para legibilidad */}
-                  <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 52%, rgba(0,0,0,0.45) 0%, transparent 72%)' }} />
-                  {/* Destino + fecha — centro vertical */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6">
-                    <p
-                      className="uppercase leading-none"
-                      style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(28px, 8vw, 48px)', fontWeight: 900, textShadow: '0 2px 24px rgba(0,0,0,0.5)' }}
-                    >
-                      {result.destination}
-                    </p>
-                    {(result.dates || result.price) && (
-                      <p
-                        className="mt-2 uppercase tracking-widest opacity-90"
-                        style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(9px, 2.2vw, 13px)', fontWeight: 700, textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}
-                      >
-                        {formatSalida(result.dates)}{result.price ? ` — ${result.price}` : ''}
-                      </p>
-                    )}
+            <div className="rounded-3xl overflow-hidden w-full mb-4 bg-white" style={{ aspectRatio: '4/5' }}>
+              {/* Foto — 78% del alto */}
+              <div className="relative w-full" style={{ height: '78%' }}>
+                <img
+                  src={selectedPhoto.thumbnail}
+                  alt={result.destination}
+                  className="w-full h-full object-cover"
+                  style={{ filter: selectedStyle.filter }}
+                />
+                {/* Logo arriba a la derecha sobre la foto */}
+                {overlayEnabled && agencyLogo && (
+                  <div className="absolute top-3 right-3" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.35))' }}>
+                    <img src={agencyLogo} alt="Logo" className="h-14 w-auto max-w-[140px] object-contain" />
                   </div>
-                  {/* Logo abajo a la derecha — solo sombra, sin box */}
-                  {agencyLogo && (
-                    <div className="absolute bottom-4 right-4" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}>
-                      <img src={agencyLogo} alt="Logo" className="h-20 w-auto max-w-[192px] object-contain" />
-                    </div>
+                )}
+              </div>
+              {/* Banner blanco — 22% del alto */}
+              {overlayEnabled && (
+                <div className="flex flex-col items-center justify-center text-center px-4" style={{ height: '22%' }}>
+                  <p
+                    className="uppercase leading-none text-[#111827]"
+                    style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(18px, 5vw, 30px)', fontWeight: 900 }}
+                  >
+                    {result.destination}
+                  </p>
+                  {(result.dates || result.price) && (
+                    <p
+                      className="mt-1 uppercase tracking-wider text-gray-500"
+                      style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(7px, 1.8vw, 10px)', fontWeight: 600 }}
+                    >
+                      {formatSalida(result.dates)}{result.price ? ` — ${result.price}` : ''}
+                    </p>
                   )}
-                </>
+                </div>
               )}
             </div>
 
@@ -1118,39 +1111,38 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* Foto con filtro + overlay (igual que en el paso anterior) */}
-                <div className="relative rounded-3xl overflow-hidden mb-4" style={{ aspectRatio: '4/5' }}>
-                  <img
-                    src={selectedPhoto.thumbnail}
-                    alt={result.destination}
-                    className="w-full h-full object-cover"
-                    style={{ filter: selectedStyle.filter }}
-                  />
-                  {overlayEnabled && (
-                    <>
-                      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 52%, rgba(0,0,0,0.45) 0%, transparent 72%)' }} />
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6">
-                        <p
-                          className="uppercase leading-none"
-                          style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(28px, 8vw, 48px)', fontWeight: 900, textShadow: '0 2px 24px rgba(0,0,0,0.5)' }}
-                        >
-                          {result.destination}
-                        </p>
-                        {(result.dates || result.price) && (
-                          <p
-                            className="mt-2 uppercase tracking-widest opacity-90"
-                            style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(9px, 2.2vw, 13px)', fontWeight: 700, textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}
-                          >
-                            {formatSalida(result.dates)}{result.price ? ` — ${result.price}` : ''}
-                          </p>
-                        )}
+                {/* Foto con filtro + overlay */}
+                <div className="rounded-3xl overflow-hidden mb-4 bg-white" style={{ aspectRatio: '4/5' }}>
+                  <div className="relative w-full" style={{ height: '78%' }}>
+                    <img
+                      src={selectedPhoto.thumbnail}
+                      alt={result.destination}
+                      className="w-full h-full object-cover"
+                      style={{ filter: selectedStyle.filter }}
+                    />
+                    {overlayEnabled && agencyLogo && (
+                      <div className="absolute top-3 right-3" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.35))' }}>
+                        <img src={agencyLogo} alt="Logo" className="h-14 w-auto max-w-[140px] object-contain" />
                       </div>
-                      {agencyLogo && (
-                        <div className="absolute bottom-4 right-4" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}>
-                          <img src={agencyLogo} alt="Logo" className="h-20 w-auto max-w-[192px] object-contain" />
-                        </div>
+                    )}
+                  </div>
+                  {overlayEnabled && (
+                    <div className="flex flex-col items-center justify-center text-center px-4" style={{ height: '22%' }}>
+                      <p
+                        className="uppercase leading-none text-[#111827]"
+                        style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(18px, 5vw, 30px)', fontWeight: 900 }}
+                      >
+                        {result.destination}
+                      </p>
+                      {(result.dates || result.price) && (
+                        <p
+                          className="mt-1 uppercase tracking-wider text-gray-500"
+                          style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(7px, 1.8vw, 10px)', fontWeight: 600 }}
+                        >
+                          {formatSalida(result.dates)}{result.price ? ` — ${result.price}` : ''}
+                        </p>
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
 
