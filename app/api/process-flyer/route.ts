@@ -97,7 +97,7 @@ Formato EXACTO:
 {
   "destination": "nombre de la ciudad o destino (ej: Buzios, Aruba, Cancun)",
   "country": "nombre del país",
-  "price": "precio base doble por persona como string corto (ej: USD 1700)",
+  "price": "precio base doble por persona, siempre con formato 'desde USD XXXX' (ej: desde USD 1700). Si hay varios precios tomá el más bajo en base doble.",
   "dates": "fechas del viaje como string (ej: 02/01/2026 al 09/01/2026)",
   "nights": "cantidad de noches como string (ej: 7)",
   "hotel": "nombre del hotel principal",
@@ -105,7 +105,7 @@ Formato EXACTO:
   "searchQuery": "3-6 palabras en inglés para buscar fotos del destino (ej: 'Aruba beach turquoise sea', 'Buzios Brazil coast', 'Cancun resort beach Mexico')"
 }
 IMPORTANTE:
-- "price" debe ser SOLO el precio base doble por persona, formato corto (ej: "USD 1700"). Si hay varios precios, tomá siempre el de base doble. Sin texto adicional.
+- "price" debe ser SIEMPRE "desde USD XXXX" con el precio más bajo en base doble. Sin aclaraciones adicionales.
 - "includes" debe ser un array de strings cortos
 - "searchQuery" DEBE incluir el nombre del destino + 2-3 descriptores geográficos/visuales
   específicos del lugar (playa, montaña, ciudad, etc.) para que las fotos sean del lugar exacto.

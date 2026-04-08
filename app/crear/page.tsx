@@ -327,38 +327,47 @@ export default function Home() {
         ctx.filter = 'none'
 
         if (overlayEnabled) {
-          const PHOTO_H = Math.round(SIZE_H * 0.78)
+          const PHOTO_H = Math.round(SIZE_H * 0.88)
           const BANNER_H = SIZE_H - PHOTO_H
 
-          // Banner blanco abajo
+          // Banner blanco chico abajo
           ctx.fillStyle = 'white'
           ctx.fillRect(0, PHOTO_H, SIZE_W, BANNER_H)
 
-          // Destino — centrado en el banner, negro, bold
-          const destText = result.destination.toUpperCase()
-          ctx.fillStyle = '#111827'
-          ctx.font = '900 86px sans-serif'
-          ctx.textAlign = 'center'
-          ctx.fillText(destText, SIZE_W / 2, PHOTO_H + BANNER_H * 0.52)
+          // Sombra radial detrás del texto
+          const cx = SIZE_W / 2, cy = PHOTO_H / 2
+          const radGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, SIZE_W * 0.55)
+          radGrad.addColorStop(0, 'rgba(0,0,0,0.45)')
+          radGrad.addColorStop(1, 'rgba(0,0,0,0)')
+          ctx.fillStyle = radGrad
+          ctx.fillRect(0, 0, SIZE_W, PHOTO_H)
 
-          // Fecha + precio — debajo, gris
+          // Destino — centrado en la foto
+          const destText = result.destination.toUpperCase()
+          ctx.fillStyle = 'white'
+          ctx.shadowColor = 'rgba(0,0,0,0.5)'
+          ctx.shadowBlur = 20
+          ctx.font = '900 96px sans-serif'
+          ctx.textAlign = 'center'
+          ctx.fillText(destText, SIZE_W / 2, PHOTO_H / 2 - 10)
+
+          // Fecha + precio
           const subLine = `${formatSalida(result.dates)}${result.price ? ` — ${result.price}` : ''}`.toUpperCase()
-          ctx.font = '600 36px sans-serif'
-          ctx.fillStyle = '#6b7280'
-          ctx.fillText(subLine, SIZE_W / 2, PHOTO_H + BANNER_H * 0.82)
+          ctx.font = '700 40px sans-serif'
+          ctx.fillStyle = 'rgba(255,255,255,0.90)'
+          ctx.shadowBlur = 10
+          ctx.fillText(subLine, SIZE_W / 2, PHOTO_H / 2 + 66)
+          ctx.shadowBlur = 0
           ctx.textAlign = 'left'
 
-          // Logo arriba a la derecha sobre la foto
+          // Logo en el banner blanco — a la derecha
           const drawFinal = () => resolve(canvas.toDataURL('image/jpeg', 0.92))
           if (agencyLogo) {
             const logoImg = new window.Image()
             logoImg.onload = () => {
-              const logoH = 140
+              const logoH = BANNER_H - 24
               const logoW = Math.round((logoImg.width / logoImg.height) * logoH)
-              ctx.shadowColor = 'rgba(0,0,0,0.35)'
-              ctx.shadowBlur = 14
-              ctx.drawImage(logoImg, SIZE_W - logoW - 40, 36, logoW, logoH)
-              ctx.shadowBlur = 0
+              ctx.drawImage(logoImg, SIZE_W - logoW - 32, PHOTO_H + 12, logoW, logoH)
               drawFinal()
             }
             logoImg.onerror = drawFinal
@@ -995,38 +1004,39 @@ export default function Home() {
 
             {/* Preview del overlay sobre la foto */}
             <div className="rounded-3xl overflow-hidden w-full mb-4 bg-white" style={{ aspectRatio: '4/5' }}>
-              {/* Foto — 78% del alto */}
-              <div className="relative w-full" style={{ height: '78%' }}>
+              {/* Foto con texto centrado — 88% del alto */}
+              <div className="relative w-full" style={{ height: overlayEnabled ? '88%' : '100%' }}>
                 <img
                   src={selectedPhoto.thumbnail}
                   alt={result.destination}
                   className="w-full h-full object-cover"
                   style={{ filter: selectedStyle.filter }}
                 />
-                {/* Logo arriba a la derecha sobre la foto */}
-                {overlayEnabled && agencyLogo && (
-                  <div className="absolute top-3 right-3" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.35))' }}>
-                    <img src={agencyLogo} alt="Logo" className="h-14 w-auto max-w-[140px] object-contain" />
-                  </div>
+                {overlayEnabled && (
+                  <>
+                    {/* Sombra radial detrás del texto */}
+                    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 50%, rgba(0,0,0,0.42) 0%, transparent 70%)' }} />
+                    {/* Texto centrado */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6">
+                      <p className="uppercase leading-none" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(26px, 7.5vw, 46px)', fontWeight: 900, textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
+                        {result.destination}
+                      </p>
+                      {(result.dates || result.price) && (
+                        <p className="mt-2 uppercase tracking-widest opacity-90" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(8px, 2vw, 11px)', fontWeight: 700, textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
+                          {formatSalida(result.dates)}{result.price ? ` — ${result.price}` : ''}
+                        </p>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
-              {/* Banner blanco — 22% del alto */}
+              {/* Banner blanco chico — solo logo */}
               {overlayEnabled && (
-                <div className="flex flex-col items-center justify-center text-center px-4" style={{ height: '22%' }}>
-                  <p
-                    className="uppercase leading-none text-[#111827]"
-                    style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(18px, 5vw, 30px)', fontWeight: 900 }}
-                  >
-                    {result.destination}
-                  </p>
-                  {(result.dates || result.price) && (
-                    <p
-                      className="mt-1 uppercase tracking-wider text-gray-500"
-                      style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(7px, 1.8vw, 10px)', fontWeight: 600 }}
-                    >
-                      {formatSalida(result.dates)}{result.price ? ` — ${result.price}` : ''}
-                    </p>
-                  )}
+                <div className="flex items-center justify-end px-4" style={{ height: '12%' }}>
+                  {agencyLogo
+                    ? <img src={agencyLogo} alt="Logo" className="h-8 w-auto max-w-[120px] object-contain" />
+                    : <span className="text-xs text-gray-300 italic">sin logo</span>
+                  }
                 </div>
               )}
             </div>
@@ -1113,35 +1123,35 @@ export default function Home() {
 
                 {/* Foto con filtro + overlay */}
                 <div className="rounded-3xl overflow-hidden mb-4 bg-white" style={{ aspectRatio: '4/5' }}>
-                  <div className="relative w-full" style={{ height: '78%' }}>
+                  <div className="relative w-full" style={{ height: overlayEnabled ? '88%' : '100%' }}>
                     <img
                       src={selectedPhoto.thumbnail}
                       alt={result.destination}
                       className="w-full h-full object-cover"
                       style={{ filter: selectedStyle.filter }}
                     />
-                    {overlayEnabled && agencyLogo && (
-                      <div className="absolute top-3 right-3" style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.35))' }}>
-                        <img src={agencyLogo} alt="Logo" className="h-14 w-auto max-w-[140px] object-contain" />
-                      </div>
+                    {overlayEnabled && (
+                      <>
+                        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 50%, rgba(0,0,0,0.42) 0%, transparent 70%)' }} />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6">
+                          <p className="uppercase leading-none" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(26px, 7.5vw, 46px)', fontWeight: 900, textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
+                            {result.destination}
+                          </p>
+                          {(result.dates || result.price) && (
+                            <p className="mt-2 uppercase tracking-widest opacity-90" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(8px, 2vw, 11px)', fontWeight: 700, textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
+                              {formatSalida(result.dates)}{result.price ? ` — ${result.price}` : ''}
+                            </p>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                   {overlayEnabled && (
-                    <div className="flex flex-col items-center justify-center text-center px-4" style={{ height: '22%' }}>
-                      <p
-                        className="uppercase leading-none text-[#111827]"
-                        style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(18px, 5vw, 30px)', fontWeight: 900 }}
-                      >
-                        {result.destination}
-                      </p>
-                      {(result.dates || result.price) && (
-                        <p
-                          className="mt-1 uppercase tracking-wider text-gray-500"
-                          style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(7px, 1.8vw, 10px)', fontWeight: 600 }}
-                        >
-                          {formatSalida(result.dates)}{result.price ? ` — ${result.price}` : ''}
-                        </p>
-                      )}
+                    <div className="flex items-center justify-end px-4" style={{ height: '12%' }}>
+                      {agencyLogo
+                        ? <img src={agencyLogo} alt="Logo" className="h-8 w-auto max-w-[120px] object-contain" />
+                        : <span className="text-xs text-gray-300 italic">sin logo</span>
+                      }
                     </div>
                   )}
                 </div>
