@@ -1,13 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 /**
  * GET /api/suggest-images?q=Aruba+beach+Caribbean&destination=Aruba
  *
  * Estrategia de búsqueda en capas para obtener fotos de viaje relevantes:
- * 1. Query principal: destination + "beach travel" (o el searchQuery completo del AI)
- * 2. Si faltan fotos, segunda búsqueda con destination + "tourism landscape"
- * 3. Sin filtro orientation — landscape se recorta bien con CSS object-cover
+ * 1. Fotos personales en Supabase (tabla photos) — se usan primero si coinciden
+ * 2. Query principal Pexels + Unsplash
+ * 3. Fallback query si hay menos de 8 resultados
  */
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+async function fetchPersonalPhotos(destination: string): Promise<any[]> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return []
+
+  const destLower = destination.toLowerCase().trim()
+  // Split destination into keywords for broader matching
+  const keywords = destLower.split(/[\s,]+/).filter(k => k.length > 2)
+
+  try {
+    // Search by destination name (case insensitive) or country or tags
+    const { data, error } = await supabaseAdmin
+      .from('photos')
+      .select('*')
+      .or(
+        keywords.map(k => `destination.ilike.%${k}%`).join(',') +
+        ',' +
+        keywords.map(k => `country.ilike.%${k}%`).join(',')
+      )
+      .limit(20)
+
+    if (error || !data) return []
+
+    return data.map((p: any) => ({
+      id: `personal-${p.id}`,
+      url: p.url,
+      thumbnail: p.url,
+      photographer: 'Personal',
+      photographerUrl: null,
+      source: 'Personal',
+      destination: p.destination,
+    }))
+  } catch {
+    return []
+  }
+}
 // ── Landmark keywords por destino ────────────────────────────────────────────
 // Queries específicas con nombres de lugares tal como los etiquetan los fotógrafos
 // en Unsplash/Pexels — cuanto más específico el landmark, mejor la foto.
@@ -209,25 +250,32 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Falta el parámetro q' }, { status: 400 })
   }
 
-  // ── Construir query principal ────────────────────────────────────────────────
-  const primaryQuery = getEnhancedQuery(q, destination)
+  // ── 1. Buscar fotos personales en Supabase primero ───────────────────────────
+  const personalPhotos = await fetchPersonalPhotos(destination)
 
-  // Query de respaldo si los resultados son insuficientes
+  // Si hay suficientes fotos personales, las devolvemos directamente (mezcladas random)
+  if (personalPhotos.length >= 10) {
+    const shuffled = personalPhotos.sort(() => Math.random() - 0.5)
+    return NextResponse.json({ images: shuffled.slice(0, 20) })
+  }
+
+  // ── 2. Construir query para Pexels/Unsplash ──────────────────────────────────
+  const primaryQuery = getEnhancedQuery(q, destination)
   const fallbackQuery = `${destination} tourism landmark`
 
-  // ── Buscar en paralelo en Pexels y Unsplash ──────────────────────────────────
+  // ── 3. Buscar en paralelo en Pexels y Unsplash ───────────────────────────────
   const [pexelsPrimary, unsplashPrimary] = await Promise.allSettled([
     fetchPexels(primaryQuery, 10),
     fetchUnsplash(primaryQuery, 10),
   ])
 
-  let images = [
+  let externalImages = [
     ...(pexelsPrimary.status === 'fulfilled' ? pexelsPrimary.value : []),
     ...(unsplashPrimary.status === 'fulfilled' ? unsplashPrimary.value : []),
   ]
 
   // Si hay menos de 8 fotos, intentar una segunda búsqueda con fallback
-  if (images.length < 8) {
+  if (externalImages.length < 8) {
     const [pexelsFallback, unsplashFallback] = await Promise.allSettled([
       fetchPexels(fallbackQuery, 6),
       fetchUnsplash(fallbackQuery, 6),
@@ -236,17 +284,18 @@ export async function GET(req: NextRequest) {
       ...(pexelsFallback.status === 'fulfilled' ? pexelsFallback.value : []),
       ...(unsplashFallback.status === 'fulfilled' ? unsplashFallback.value : []),
     ]
-    // Agregar sin duplicar IDs
-    const existingIds = new Set(images.map(i => i.id))
-    images = [...images, ...fallback.filter(i => !existingIds.has(i.id))]
+    const existingIds = new Set(externalImages.map(i => i.id))
+    externalImages = [...externalImages, ...fallback.filter(i => !existingIds.has(i.id))]
   }
 
-  if (images.length === 0) {
+  // ── 4. Combinar: fotos personales primero, luego externas ────────────────────
+  const allImages = [...personalPhotos, ...externalImages]
+
+  if (allImages.length === 0) {
     return NextResponse.json({ error: 'No se encontraron imágenes' }, { status: 500 })
   }
 
-  // Limitar a 20
-  return NextResponse.json({ images: images.slice(0, 20) })
+  return NextResponse.json({ images: allImages.slice(0, 20) })
 }
 
 async function fetchPexels(query: string, perPage = 10) {

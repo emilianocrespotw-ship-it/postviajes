@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
+import { getUserUsage, incrementPostCount } from '@/lib/usage'
 
 export async function POST(req: NextRequest) {
   const session: any = await getServerSession(authOptions)
@@ -9,6 +10,19 @@ export async function POST(req: NextRequest) {
       error: 'No autenticado. Conectá tu cuenta de Facebook primero.',
       code: 'NOT_AUTHENTICATED',
     }, { status: 401 })
+  }
+
+  // ── Chequeo de límite de uso ─────────────────────────────────────────────────
+  const email = session.user?.email
+  if (email) {
+    const usage = await getUserUsage(email)
+    if (usage.limitReached) {
+      return NextResponse.json({
+        error: 'Límite mensual alcanzado',
+        code: 'LIMIT_REACHED',
+        postsThisMonth: usage.postsThisMonth,
+      }, { status: 403 })
+    }
   }
 
   try {
@@ -132,6 +146,11 @@ export async function POST(req: NextRequest) {
 
     if (!fbPostId && errors.length > 0) {
       return NextResponse.json({ success: false, errors }, { status: 500 })
+    }
+
+    // ── Incrementar contador de uso ──────────────────────────────────────────
+    if (email) {
+      await incrementPostCount(email)
     }
 
     return NextResponse.json({
