@@ -38,14 +38,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Logo demasiado grande (máx 500KB)' }, { status: 400 })
   }
 
-  const update: Record<string, string> = {}
-  if (agency_name !== undefined) update.agency_name = agency_name
-  if (logo_data !== undefined) update.logo_data = logo_data
+  const upsertData: Record<string, string> = { email: session.user.email, plan: 'free' }
+  if (agency_name !== undefined) upsertData.agency_name = agency_name
+  if (logo_data !== undefined) upsertData.logo_data = logo_data
 
+  // upsert: crea el usuario si no existe, actualiza si existe
   const { error } = await supabaseAdmin
     .from('users')
-    .update(update)
-    .eq('email', session.user.email)
+    .upsert(upsertData, { onConflict: 'email' })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

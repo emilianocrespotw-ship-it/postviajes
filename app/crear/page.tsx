@@ -327,47 +327,44 @@ export default function Home() {
         ctx.filter = 'none'
 
         if (overlayEnabled) {
-          // Gradiente oscuro arriba
-          const grad = ctx.createLinearGradient(0, 0, 0, SIZE_H * 0.62)
-          grad.addColorStop(0, 'rgba(0,0,0,0.80)')
-          grad.addColorStop(1, 'rgba(0,0,0,0)')
-          ctx.fillStyle = grad
+          // Sombra radial suave detrás del texto
+          const cx = SIZE_W / 2, cy = SIZE_H / 2
+          const rad = ctx.createRadialGradient(cx, cy, 0, cx, cy, SIZE_W * 0.6)
+          rad.addColorStop(0, 'rgba(0,0,0,0.48)')
+          rad.addColorStop(1, 'rgba(0,0,0,0)')
+          ctx.fillStyle = rad
           ctx.fillRect(0, 0, SIZE_W, SIZE_H)
 
-          // Destino — centrado arriba, serif bold uppercase
+          // Destino — centrado vertical y horizontal, Unbounded-style
           const destText = result.destination.toUpperCase()
           ctx.fillStyle = 'white'
-          ctx.font = '900 80px Georgia, serif'
+          ctx.shadowColor = 'rgba(0,0,0,0.5)'
+          ctx.shadowBlur = 24
+          ctx.font = '900 96px sans-serif'
           ctx.textAlign = 'center'
-          ctx.letterSpacing = '8px'
-          ctx.fillText(destText, SIZE_W / 2, 130)
+          ctx.fillText(destText, SIZE_W / 2, SIZE_H / 2 - 20)
 
-          // Fecha discreta
-          if (result.dates) {
-            ctx.font = '300 38px Georgia, serif'
-            ctx.fillStyle = 'rgba(255,255,255,0.65)'
-            ctx.letterSpacing = '4px'
-            ctx.fillText(formatSalida(result.dates).toUpperCase(), SIZE_W / 2, 192)
-          }
+          // Fecha + precio
+          const subLine = `${formatSalida(result.dates)}${result.price ? ` — ${result.price}` : ''}`.toUpperCase()
+          ctx.font = '700 42px sans-serif'
+          ctx.fillStyle = 'rgba(255,255,255,0.90)'
+          ctx.shadowBlur = 12
+          ctx.fillText(subLine, SIZE_W / 2, SIZE_H / 2 + 60)
+
+          ctx.shadowBlur = 0
           ctx.textAlign = 'left'
-          ctx.letterSpacing = '0px'
 
-          // Logo abajo a la derecha — badge blanco sólido
+          // Logo abajo a la derecha — solo drop shadow
           const drawFinal = () => resolve(canvas.toDataURL('image/jpeg', 0.92))
           if (agencyLogo) {
             const logoImg = new window.Image()
             logoImg.onload = () => {
               const logoH = 180
               const logoW = Math.round((logoImg.width / logoImg.height) * logoH)
-              const pad = 24
-              const bx = SIZE_W - logoW - pad * 2 - 40
-              const by = SIZE_H - logoH - pad * 2 - 40
-              // Badge blanco sólido
-              ctx.fillStyle = 'white'
-              ctx.beginPath()
-              ctx.roundRect(bx, by, logoW + pad * 2, logoH + pad * 2, 24)
-              ctx.fill()
-              ctx.drawImage(logoImg, bx + pad, by + pad, logoW, logoH)
+              ctx.shadowColor = 'rgba(0,0,0,0.4)'
+              ctx.shadowBlur = 16
+              ctx.drawImage(logoImg, SIZE_W - logoW - 48, SIZE_H - logoH - 48, logoW, logoH)
+              ctx.shadowBlur = 0
               drawFinal()
             }
             logoImg.onerror = drawFinal
@@ -1012,30 +1009,28 @@ export default function Home() {
               />
               {overlayEnabled && (
                 <>
-                  {/* Gradiente oscuro arriba */}
-                  <div
-                    className="absolute inset-0"
-                    style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, transparent 68%)' }}
-                  />
-                  {/* Destino centrado + fecha — arriba */}
-                  <div className="absolute top-8 left-0 right-0 text-white text-center px-4 drop-shadow-lg">
+                  {/* Sombra suave detrás del texto para legibilidad */}
+                  <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 52%, rgba(0,0,0,0.45) 0%, transparent 72%)' }} />
+                  {/* Destino + fecha — centro vertical */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6">
                     <p
-                      className="uppercase tracking-widest leading-tight"
-                      style={{ fontFamily: 'var(--font-playfair), Georgia, serif', fontSize: 'clamp(22px, 6vw, 36px)', fontWeight: 900 }}
+                      className="uppercase leading-none"
+                      style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(28px, 8vw, 48px)', fontWeight: 900, textShadow: '0 2px 24px rgba(0,0,0,0.5)' }}
                     >
                       {result.destination}
                     </p>
-                    {result.dates && (
-                      <p className="text-xs tracking-wider mt-1.5 opacity-70 font-light uppercase">
-                        {formatSalida(result.dates)}
+                    {(result.dates || result.price) && (
+                      <p
+                        className="mt-2 uppercase tracking-widest opacity-90"
+                        style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(9px, 2.2vw, 13px)', fontWeight: 700, textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}
+                      >
+                        {formatSalida(result.dates)}{result.price ? ` — ${result.price}` : ''}
                       </p>
                     )}
                   </div>
-                  {/* Logo abajo a la derecha — badge blanco sólido */}
+                  {/* Logo abajo a la derecha — solo sombra, sin box */}
                   {agencyLogo && (
-                    <div
-                      className="absolute bottom-4 right-4 bg-white rounded-2xl px-3 py-2 shadow-xl flex items-center justify-center"
-                    >
+                    <div className="absolute bottom-4 right-4" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}>
                       <img src={agencyLogo} alt="Logo" className="h-20 w-auto max-w-[192px] object-contain" />
                     </div>
                   )}
@@ -1133,25 +1128,25 @@ export default function Home() {
                   />
                   {overlayEnabled && (
                     <>
-                      <div
-                        className="absolute inset-0"
-                        style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, transparent 68%)' }}
-                      />
-                      <div className="absolute top-8 left-0 right-0 text-white text-center px-4 drop-shadow-lg">
+                      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 52%, rgba(0,0,0,0.45) 0%, transparent 72%)' }} />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6">
                         <p
-                          className="uppercase tracking-widest leading-tight"
-                          style={{ fontFamily: 'var(--font-playfair), Georgia, serif', fontSize: 'clamp(22px, 6vw, 36px)', fontWeight: 900 }}
+                          className="uppercase leading-none"
+                          style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(28px, 8vw, 48px)', fontWeight: 900, textShadow: '0 2px 24px rgba(0,0,0,0.5)' }}
                         >
                           {result.destination}
                         </p>
-                        {result.dates && (
-                          <p className="text-xs tracking-wider mt-1.5 opacity-70 font-light uppercase">
-                            {formatSalida(result.dates)}
+                        {(result.dates || result.price) && (
+                          <p
+                            className="mt-2 uppercase tracking-widest opacity-90"
+                            style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(9px, 2.2vw, 13px)', fontWeight: 700, textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}
+                          >
+                            {formatSalida(result.dates)}{result.price ? ` — ${result.price}` : ''}
                           </p>
                         )}
                       </div>
                       {agencyLogo && (
-                        <div className="absolute bottom-4 right-4 bg-white rounded-2xl px-3 py-2 shadow-xl flex items-center justify-center">
+                        <div className="absolute bottom-4 right-4" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}>
                           <img src={agencyLogo} alt="Logo" className="h-20 w-auto max-w-[192px] object-contain" />
                         </div>
                       )}
