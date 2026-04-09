@@ -341,7 +341,7 @@ export default function Home() {
         ctx.filter = 'none'
 
         if (overlayEnabled) {
-          const PHOTO_H = Math.round(SIZE_H * 0.85)  // 15% banner → más espacio para logo
+          const PHOTO_H = Math.round(SIZE_H * 0.88)  // 12% banner
           const BANNER_H = SIZE_H - PHOTO_H
 
           // Banner blanco abajo
@@ -386,8 +386,8 @@ export default function Home() {
           if (agencyLogo) {
             const logoImg = new window.Image()
             logoImg.onload = () => {
-              // Logo centrado en el banner, doble de tamaño (BANNER_H - 16px margen)
-              const logoH = BANNER_H - 16
+              // Logo centrado en el banner, llena casi todo el alto (8px margen total)
+              const logoH = BANNER_H - 8
               const logoW = Math.round((logoImg.width / logoImg.height) * logoH)
               const logoX = (SIZE_W - logoW) / 2  // centrado horizontalmente
               const logoY = PHOTO_H + (BANNER_H - logoH) / 2  // centrado verticalmente
@@ -1033,7 +1033,7 @@ export default function Home() {
             {/* Preview del overlay sobre la foto */}
             <div className="rounded-3xl overflow-hidden w-full mb-4 bg-white" style={{ aspectRatio: '4/5' }}>
               {/* Foto con texto centrado — 88% del alto */}
-              <div className="relative w-full" style={{ height: overlayEnabled ? '85%' : '100%' }}>
+              <div className="relative w-full" style={{ height: overlayEnabled ? '88%' : '100%' }}>
                 <img
                   src={selectedPhoto.thumbnail}
                   alt={result.destination}
@@ -1060,9 +1060,9 @@ export default function Home() {
               </div>
               {/* Banner blanco chico — solo logo centrado */}
               {overlayEnabled && (
-                <div className="flex items-center justify-center px-4" style={{ height: '15%' }}>
+                <div className="flex items-center justify-center px-2" style={{ height: '12%' }}>
                   {agencyLogo
-                    ? <img src={agencyLogo} alt="Logo" className="h-20 w-auto max-w-[240px] object-contain" />
+                    ? <img src={agencyLogo} alt="Logo" className="h-full w-auto max-w-[260px] object-contain py-1" />
                     : <span className="text-xs text-gray-300 italic">sin logo</span>
                   }
                 </div>
@@ -1151,7 +1151,7 @@ export default function Home() {
 
                 {/* Foto con filtro + overlay */}
                 <div className="rounded-3xl overflow-hidden mb-4 bg-white" style={{ aspectRatio: '4/5' }}>
-                  <div className="relative w-full" style={{ height: overlayEnabled ? '85%' : '100%' }}>
+                  <div className="relative w-full" style={{ height: overlayEnabled ? '88%' : '100%' }}>
                     <img
                       src={selectedPhoto.thumbnail}
                       alt={result.destination}
