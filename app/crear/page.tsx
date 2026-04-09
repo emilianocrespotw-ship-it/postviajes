@@ -379,9 +379,12 @@ export default function Home() {
           if (agencyLogo) {
             const logoImg = new window.Image()
             logoImg.onload = () => {
-              const logoH = BANNER_H - 24
+              // Logo centrado en el banner, doble de tamaño (BANNER_H - 16px margen)
+              const logoH = BANNER_H - 16
               const logoW = Math.round((logoImg.width / logoImg.height) * logoH)
-              ctx.drawImage(logoImg, SIZE_W - logoW - 32, PHOTO_H + 12, logoW, logoH)
+              const logoX = (SIZE_W - logoW) / 2  // centrado horizontalmente
+              const logoY = PHOTO_H + (BANNER_H - logoH) / 2  // centrado verticalmente
+              ctx.drawImage(logoImg, logoX, logoY, logoW, logoH)
               drawFinal()
             }
             logoImg.onerror = drawFinal
@@ -1048,11 +1051,11 @@ export default function Home() {
                   </>
                 )}
               </div>
-              {/* Banner blanco chico — solo logo */}
+              {/* Banner blanco chico — solo logo centrado */}
               {overlayEnabled && (
-                <div className="flex items-center justify-end px-4" style={{ height: '12%' }}>
+                <div className="flex items-center justify-center px-4" style={{ height: '12%' }}>
                   {agencyLogo
-                    ? <img src={agencyLogo} alt="Logo" className="h-8 w-auto max-w-[120px] object-contain" />
+                    ? <img src={agencyLogo} alt="Logo" className="h-16 w-auto max-w-[200px] object-contain" />
                     : <span className="text-xs text-gray-300 italic">sin logo</span>
                   }
                 </div>
@@ -1165,9 +1168,9 @@ export default function Home() {
                     )}
                   </div>
                   {overlayEnabled && (
-                    <div className="flex items-center justify-end px-4" style={{ height: '12%' }}>
+                    <div className="flex items-center justify-center px-4" style={{ height: '12%' }}>
                       {agencyLogo
-                        ? <img src={agencyLogo} alt="Logo" className="h-8 w-auto max-w-[120px] object-contain" />
+                        ? <img src={agencyLogo} alt="Logo" className="h-16 w-auto max-w-[200px] object-contain" />
                         : <span className="text-xs text-gray-300 italic">sin logo</span>
                       }
                     </div>

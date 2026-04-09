@@ -16,7 +16,12 @@ export async function GET(req: NextRequest) {
   }
 
   // Solo permitir URLs de fuentes conocidas
-  const allowed = ['images.pexels.com', 'images.unsplash.com', 'cdn.unsplash.com']
+  const allowed = [
+    'images.pexels.com',
+    'images.unsplash.com',
+    'cdn.unsplash.com',
+    'supabase.co',       // fotos personales del bucket travel-photos
+  ]
   try {
     const parsed = new URL(url)
     if (!allowed.some(host => parsed.hostname.endsWith(host))) {
