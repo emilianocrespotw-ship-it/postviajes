@@ -465,17 +465,33 @@ export default function Home() {
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
   // Función única para procesar la imagen (venga de donde venga)
+  // Comprime automáticamente para que no supere ~1.5MB antes de enviar a la API
   const processImageFile = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) return
-    setFlyerMime(file.type || 'image/jpeg')
     const reader = new FileReader()
     reader.onloadend = () => {
       const dataUrl = reader.result as string
-      posthog.capture('flyer_subido')
-      setFlyerPreview(dataUrl)
-      setFlyerBase64(dataUrl.split(',')[1])
-      setCurrentStep(1)
-      setError(null)
+      const img = new window.Image()
+      img.onload = () => {
+        // Redimensionar a máx 1600px en el lado más largo (suficiente para OCR)
+        const MAX_PX = 1600
+        const scale = Math.min(1, MAX_PX / Math.max(img.width, img.height))
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+        // JPEG 0.88 → ~300-600KB para fotos típicas de cámara
+        const compressed = canvas.toDataURL('image/jpeg', 0.88)
+        posthog.capture('flyer_subido')
+        setFlyerPreview(compressed)
+        setFlyerBase64(compressed.split(',')[1])
+        setFlyerMime('image/jpeg')
+        setCurrentStep(1)
+        setError(null)
+      }
+      img.src = dataUrl
     }
     reader.readAsDataURL(file)
   }, [])
