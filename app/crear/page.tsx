@@ -341,10 +341,10 @@ export default function Home() {
         ctx.filter = 'none'
 
         if (overlayEnabled) {
-          const PHOTO_H = Math.round(SIZE_H * 0.88)
+          const PHOTO_H = Math.round(SIZE_H * 0.85)  // 15% banner → más espacio para logo
           const BANNER_H = SIZE_H - PHOTO_H
 
-          // Banner blanco chico abajo
+          // Banner blanco abajo
           ctx.fillStyle = 'white'
           ctx.fillRect(0, PHOTO_H, SIZE_W, BANNER_H)
 
@@ -356,21 +356,28 @@ export default function Home() {
           ctx.fillStyle = radGrad
           ctx.fillRect(0, 0, SIZE_W, PHOTO_H)
 
-          // Destino — centrado en la foto
+          // Destino — un poco más arriba del centro
           const destText = result.destination.toUpperCase()
           ctx.fillStyle = 'white'
           ctx.shadowColor = 'rgba(0,0,0,0.5)'
           ctx.shadowBlur = 20
           ctx.font = '900 96px sans-serif'
           ctx.textAlign = 'center'
-          ctx.fillText(destText, SIZE_W / 2, PHOTO_H / 2 - 10)
+          ctx.fillText(destText, SIZE_W / 2, PHOTO_H / 2 - 40)
 
-          // Fecha + precio
-          const subLine = `${formatSalida(result.dates)}${result.price ? ` — ${result.price}` : ''}`.toUpperCase()
-          ctx.font = '700 40px sans-serif'
-          ctx.fillStyle = 'rgba(255,255,255,0.90)'
-          ctx.shadowBlur = 10
-          ctx.fillText(subLine, SIZE_W / 2, PHOTO_H / 2 + 66)
+          // Fecha + precio — solo si hay contenido real
+          const hasDates = result.dates && result.dates.trim() !== ''
+          const hasPrice = result.price && result.price.trim() !== ''
+          if (hasDates || hasPrice) {
+            const parts: string[] = []
+            if (hasDates) parts.push(formatSalida(result.dates))
+            if (hasPrice) parts.push(result.price)
+            const subLine = parts.join(' — ').toUpperCase()
+            ctx.font = '700 40px sans-serif'
+            ctx.fillStyle = 'rgba(255,255,255,0.90)'
+            ctx.shadowBlur = 10
+            ctx.fillText(subLine, SIZE_W / 2, PHOTO_H / 2 + 36)
+          }
           ctx.shadowBlur = 0
           ctx.textAlign = 'left'
 
@@ -1026,7 +1033,7 @@ export default function Home() {
             {/* Preview del overlay sobre la foto */}
             <div className="rounded-3xl overflow-hidden w-full mb-4 bg-white" style={{ aspectRatio: '4/5' }}>
               {/* Foto con texto centrado — 88% del alto */}
-              <div className="relative w-full" style={{ height: overlayEnabled ? '88%' : '100%' }}>
+              <div className="relative w-full" style={{ height: overlayEnabled ? '85%' : '100%' }}>
                 <img
                   src={selectedPhoto.thumbnail}
                   alt={result.destination}
@@ -1037,14 +1044,14 @@ export default function Home() {
                   <>
                     {/* Sombra radial detrás del texto */}
                     <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 50%, rgba(0,0,0,0.42) 0%, transparent 70%)' }} />
-                    {/* Texto centrado */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6">
+                    {/* Texto centrado — un poco más arriba */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6" style={{ paddingBottom: '8%' }}>
                       <p className="uppercase leading-none" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(26px, 7.5vw, 46px)', fontWeight: 900, textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
                         {result.destination}
                       </p>
-                      {(result.dates || result.price) && (
+                      {(result.dates?.trim() || result.price?.trim()) && (
                         <p className="mt-2 uppercase tracking-widest opacity-90" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(8px, 2vw, 11px)', fontWeight: 700, textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
-                          {formatSalida(result.dates)}{result.price ? ` — ${result.price}` : ''}
+                          {[result.dates?.trim() ? formatSalida(result.dates) : null, result.price?.trim() || null].filter(Boolean).join(' — ')}
                         </p>
                       )}
                     </div>
@@ -1053,9 +1060,9 @@ export default function Home() {
               </div>
               {/* Banner blanco chico — solo logo centrado */}
               {overlayEnabled && (
-                <div className="flex items-center justify-center px-4" style={{ height: '12%' }}>
+                <div className="flex items-center justify-center px-4" style={{ height: '15%' }}>
                   {agencyLogo
-                    ? <img src={agencyLogo} alt="Logo" className="h-16 w-auto max-w-[200px] object-contain" />
+                    ? <img src={agencyLogo} alt="Logo" className="h-20 w-auto max-w-[240px] object-contain" />
                     : <span className="text-xs text-gray-300 italic">sin logo</span>
                   }
                 </div>
@@ -1144,7 +1151,7 @@ export default function Home() {
 
                 {/* Foto con filtro + overlay */}
                 <div className="rounded-3xl overflow-hidden mb-4 bg-white" style={{ aspectRatio: '4/5' }}>
-                  <div className="relative w-full" style={{ height: overlayEnabled ? '88%' : '100%' }}>
+                  <div className="relative w-full" style={{ height: overlayEnabled ? '85%' : '100%' }}>
                     <img
                       src={selectedPhoto.thumbnail}
                       alt={result.destination}
