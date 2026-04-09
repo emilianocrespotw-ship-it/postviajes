@@ -271,18 +271,31 @@ export default function Home() {
   const [overlayEnabled, setOverlayEnabled] = useState(true)
   const [savingAgency, setSavingAgency] = useState(false)
 
-  // Cargar datos de agencia cuando hay sesión
+  // Cargar logo: primero localStorage (instantáneo), luego Supabase (sincroniza)
   useEffect(() => {
-    if (session?.user?.email) {
+    // 1. Carga inmediata desde localStorage (sin esperar red)
+    const cached = localStorage.getItem('pv_logo')
+    const cachedName = localStorage.getItem('pv_agency_name')
+    if (cached) setAgencyLogo(cached)
+    if (cachedName) setAgencyName(cachedName)
+
+    // 2. Si hay sesión, sincronizar desde Supabase (fuente de verdad)
+    if (session?.user) {
       fetch('/api/agency')
         .then(r => r.json())
         .then(d => {
-          if (d.logo_data) setAgencyLogo(d.logo_data)
-          if (d.agency_name) setAgencyName(d.agency_name)
+          if (d.logo_data) {
+            setAgencyLogo(d.logo_data)
+            localStorage.setItem('pv_logo', d.logo_data)
+          }
+          if (d.agency_name) {
+            setAgencyName(d.agency_name)
+            localStorage.setItem('pv_agency_name', d.agency_name)
+          }
         })
         .catch(() => {})
     }
-  }, [session?.user?.email])
+  }, [session?.user])
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -303,14 +316,16 @@ export default function Home() {
         canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
         const compressed = canvas.toDataURL('image/png')
         setAgencyLogo(compressed)
-        if (session?.user?.email) {
-          setSavingAgency(true)
-          fetch('/api/agency', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ logo_data: compressed, agency_name: agencyName }),
-          }).finally(() => setSavingAgency(false))
-        }
+        // Guardar en localStorage (persiste sin red)
+        localStorage.setItem('pv_logo', compressed)
+        if (agencyName) localStorage.setItem('pv_agency_name', agencyName)
+        // Guardar en Supabase (sincroniza entre dispositivos)
+        setSavingAgency(true)
+        fetch('/api/agency', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logo_data: compressed, agency_name: agencyName }),
+        }).finally(() => setSavingAgency(false))
       }
       img.src = src
     }
