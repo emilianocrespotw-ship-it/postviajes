@@ -365,8 +365,8 @@ export default function Home() {
 
           // Sombra radial detrás del texto
           const cx = SIZE_W / 2, cy = PHOTO_H / 2
-          const radGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, SIZE_W * 0.55)
-          radGrad.addColorStop(0, 'rgba(0,0,0,0.45)')
+          const radGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, SIZE_W * 0.45)
+          radGrad.addColorStop(0, 'rgba(0,0,0,0.25)')
           radGrad.addColorStop(1, 'rgba(0,0,0,0)')
           ctx.fillStyle = radGrad
           ctx.fillRect(0, 0, SIZE_W, PHOTO_H)
@@ -374,8 +374,8 @@ export default function Home() {
           // Destino — un poco más arriba del centro
           const destText = result.destination.toUpperCase()
           ctx.fillStyle = 'white'
-          ctx.shadowColor = 'rgba(0,0,0,0.5)'
-          ctx.shadowBlur = 20
+          ctx.shadowColor = 'rgba(0,0,0,0.35)'
+          ctx.shadowBlur = 12
           ctx.font = '900 96px sans-serif'
           ctx.textAlign = 'center'
           ctx.fillText(destText, SIZE_W / 2, PHOTO_H / 2 - 40)
@@ -1058,7 +1058,7 @@ export default function Home() {
                 {overlayEnabled && (
                   <>
                     {/* Sombra radial detrás del texto */}
-                    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 50%, rgba(0,0,0,0.42) 0%, transparent 70%)' }} />
+                    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 50%, rgba(0,0,0,0.22) 0%, transparent 65%)' }} />
                     {/* Texto centrado — un poco más arriba */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6" style={{ paddingBottom: '8%' }}>
                       <p className="uppercase leading-none" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(26px, 7.5vw, 46px)', fontWeight: 900, textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
@@ -1175,7 +1175,7 @@ export default function Home() {
                     />
                     {overlayEnabled && (
                       <>
-                        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 50%, rgba(0,0,0,0.42) 0%, transparent 70%)' }} />
+                        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 50%, rgba(0,0,0,0.22) 0%, transparent 65%)' }} />
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6">
                           <p className="uppercase leading-none" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(26px, 7.5vw, 46px)', fontWeight: 900, textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
                             {result.destination}
