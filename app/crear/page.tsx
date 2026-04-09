@@ -371,14 +371,41 @@ export default function Home() {
           ctx.fillStyle = radGrad
           ctx.fillRect(0, 0, SIZE_W, PHOTO_H)
 
-          // Destino — un poco más arriba del centro
+          // Destino — auto-ajuste de fuente para que entre en el ancho
           const destText = result.destination.toUpperCase()
+          const MAX_TEXT_W = SIZE_W - 80  // 40px margen a cada lado
+          let destFontSize = 96
+          ctx.font = `900 ${destFontSize}px sans-serif`
+          while (ctx.measureText(destText).width > MAX_TEXT_W && destFontSize > 40) {
+            destFontSize -= 4
+            ctx.font = `900 ${destFontSize}px sans-serif`
+          }
+          // Si aún no entra con 40px, hacer wrap en dos líneas
+          const words = destText.split(' ')
+          let line1 = destText, line2 = ''
+          if (ctx.measureText(destText).width > MAX_TEXT_W && words.length > 1) {
+            const mid = Math.ceil(words.length / 2)
+            line1 = words.slice(0, mid).join(' ')
+            line2 = words.slice(mid).join(' ')
+            // Re-ajustar fuente para la línea más larga
+            const longest = line1.length > line2.length ? line1 : line2
+            destFontSize = 96
+            ctx.font = `900 ${destFontSize}px sans-serif`
+            while (ctx.measureText(longest).width > MAX_TEXT_W && destFontSize > 40) {
+              destFontSize -= 4
+              ctx.font = `900 ${destFontSize}px sans-serif`
+            }
+          }
           ctx.fillStyle = 'white'
           ctx.shadowColor = 'rgba(0,0,0,0.35)'
           ctx.shadowBlur = 12
-          ctx.font = '900 96px sans-serif'
           ctx.textAlign = 'center'
-          ctx.fillText(destText, SIZE_W / 2, PHOTO_H / 2 - 40)
+          const lineH = destFontSize * 1.15
+          const textY = line2
+            ? PHOTO_H / 2 - 40 - lineH / 2   // dos líneas: centrar el bloque
+            : PHOTO_H / 2 - 40                // una línea: igual que antes
+          ctx.fillText(line1, SIZE_W / 2, textY)
+          if (line2) ctx.fillText(line2, SIZE_W / 2, textY + lineH)
 
           // Fecha + precio — solo si hay contenido real
           const hasDates = result.dates && result.dates.trim() !== ''
@@ -388,10 +415,11 @@ export default function Home() {
             if (hasDates) parts.push(formatSalida(result.dates))
             if (hasPrice) parts.push(result.price)
             const subLine = parts.join(' — ').toUpperCase()
+            const subY = line2 ? textY + lineH + 56 : PHOTO_H / 2 + 36
             ctx.font = '700 40px sans-serif'
             ctx.fillStyle = 'rgba(255,255,255,0.90)'
             ctx.shadowBlur = 10
-            ctx.fillText(subLine, SIZE_W / 2, PHOTO_H / 2 + 36)
+            ctx.fillText(subLine, SIZE_W / 2, subY)
           }
           ctx.shadowBlur = 0
           ctx.textAlign = 'left'
@@ -1061,7 +1089,7 @@ export default function Home() {
                     <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 50%, rgba(0,0,0,0.22) 0%, transparent 65%)' }} />
                     {/* Texto centrado — un poco más arriba */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6" style={{ paddingBottom: '8%' }}>
-                      <p className="uppercase leading-none" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(26px, 7.5vw, 46px)', fontWeight: 900, textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
+                      <p className="uppercase leading-tight break-words w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(20px, 6.5vw, 42px)', fontWeight: 900, textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}>
                         {result.destination}
                       </p>
                       {(result.dates?.trim() || result.price?.trim()) && (
