@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
 
-// Aumentar límite de body a 10MB para fotos de cámara
-export const config = {
-  api: { bodyParser: { sizeLimit: '10mb' } },
-}
 
 const FREE_LIMIT = 999
 
