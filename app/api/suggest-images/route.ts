@@ -250,16 +250,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Falta el parámetro q' }, { status: 400 })
   }
 
-  // ── 1. Buscar fotos personales en Supabase primero ───────────────────────────
+  // ── 1. Buscar fotos personales en Supabase (máx 6) ──────────────────────────
   const personalPhotos = await fetchPersonalPhotos(destination)
+  const personal6 = personalPhotos.sort(() => Math.random() - 0.5).slice(0, 6)
 
-  // Si hay suficientes fotos personales, las devolvemos directamente (mezcladas random)
-  if (personalPhotos.length >= 10) {
-    const shuffled = personalPhotos.sort(() => Math.random() - 0.5)
-    return NextResponse.json({ images: shuffled.slice(0, 20) })
-  }
-
-  // ── 2. Construir query para Pexels/Unsplash ──────────────────────────────────
+  // ── 2. Construir query para Pexels/Unsplash (siempre al menos 4) ─────────────
   const primaryQuery = getEnhancedQuery(q, destination)
   const fallbackQuery = `${destination} tourism landmark`
 
@@ -274,7 +269,7 @@ export async function GET(req: NextRequest) {
     ...(unsplashPrimary.status === 'fulfilled' ? unsplashPrimary.value : []),
   ]
 
-  // Si hay menos de 8 fotos, intentar una segunda búsqueda con fallback
+  // Si hay menos de 8 fotos externas, buscar con fallback
   if (externalImages.length < 8) {
     const [pexelsFallback, unsplashFallback] = await Promise.allSettled([
       fetchPexels(fallbackQuery, 6),
@@ -288,8 +283,8 @@ export async function GET(req: NextRequest) {
     externalImages = [...externalImages, ...fallback.filter(i => !existingIds.has(i.id))]
   }
 
-  // ── 4. Combinar: fotos personales primero, luego externas ────────────────────
-  const allImages = [...personalPhotos, ...externalImages]
+  // ── 4. Combinar: máx 6 personales + resto externas hasta 20 ─────────────────
+  const allImages = [...personal6, ...externalImages]
 
   if (allImages.length === 0) {
     return NextResponse.json({ error: 'No se encontraron imágenes' }, { status: 500 })
