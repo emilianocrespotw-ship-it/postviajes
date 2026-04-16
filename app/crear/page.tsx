@@ -333,7 +333,13 @@ export default function Home() {
   }
 
   // Genera imagen compuesta (foto + filtro + overlay) como dataURL
-  const generateOverlayCanvas = (): Promise<string> => {
+  const generateOverlayCanvas = async (): Promise<string> => {
+    // Pre-cargar la fuente Unbounded para que esté disponible en canvas (especialmente en mobile)
+    try {
+      await document.fonts.load('900 96px Unbounded')
+      await document.fonts.load('700 40px Unbounded')
+    } catch { /* Si falla, usa fallback sans-serif */ }
+
     return new Promise((resolve, reject) => {
       if (!selectedPhoto || !result) return reject('Sin datos')
 
@@ -375,10 +381,10 @@ export default function Home() {
           const destText = result.destination.toUpperCase()
           const MAX_TEXT_W = SIZE_W - 80  // 40px margen a cada lado
           let destFontSize = 96
-          ctx.font = `900 ${destFontSize}px sans-serif`
+          ctx.font = `900 ${destFontSize}px 'Unbounded', sans-serif`
           while (ctx.measureText(destText).width > MAX_TEXT_W && destFontSize > 40) {
             destFontSize -= 4
-            ctx.font = `900 ${destFontSize}px sans-serif`
+            ctx.font = `900 ${destFontSize}px 'Unbounded', sans-serif`
           }
           // Si aún no entra con 40px, hacer wrap en dos líneas
           const words = destText.split(' ')
@@ -390,10 +396,10 @@ export default function Home() {
             // Re-ajustar fuente para la línea más larga
             const longest = line1.length > line2.length ? line1 : line2
             destFontSize = 96
-            ctx.font = `900 ${destFontSize}px sans-serif`
+            ctx.font = `900 ${destFontSize}px 'Unbounded', sans-serif`
             while (ctx.measureText(longest).width > MAX_TEXT_W && destFontSize > 40) {
               destFontSize -= 4
-              ctx.font = `900 ${destFontSize}px sans-serif`
+              ctx.font = `900 ${destFontSize}px 'Unbounded', sans-serif`
             }
           }
           ctx.fillStyle = 'white'
@@ -416,7 +422,7 @@ export default function Home() {
             if (hasPrice) parts.push(result.price)
             const subLine = parts.join(' — ').toUpperCase()
             const subY = line2 ? textY + lineH + 56 : PHOTO_H / 2 + 36
-            ctx.font = '700 40px sans-serif'
+            ctx.font = `700 40px 'Unbounded', sans-serif`
             ctx.fillStyle = 'rgba(255,255,255,0.90)'
             ctx.shadowBlur = 10
             ctx.fillText(subLine, SIZE_W / 2, subY)
@@ -684,28 +690,58 @@ export default function Home() {
       ? (editedFB || result.textFacebook)
       : (editedIG || result.textInstagram)
 
-    // Download image (compuesta con overlay, o la original)
-    const a = document.createElement('a')
-    a.href = overlayDataUrl || dlUrl
-    a.download = `postviajes-${safeD}.jpg`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+    const isMobile = typeof window !== 'undefined' &&
+      ('ontouchstart' in window || navigator.maxTouchPoints > 0)
 
-    // Copy text
+    // Copy text to clipboard
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(textToCopy).catch(() => {})
     }
 
-    // Open network
-    setTimeout(() => {
-      window.open(
-        network === 'facebook' ? 'https://www.facebook.com' : 'https://www.instagram.com',
-        '_blank',
-        'noopener'
-      )
-      setSocialAction(null)
-    }, 400)
+    if (isMobile && typeof navigator !== 'undefined' && navigator.share) {
+      // En mobile: usar Web Share API para que la imagen llegue al Camera Roll (Recientes)
+      try {
+        let blob: Blob
+        if (overlayDataUrl) {
+          const res = await fetch(overlayDataUrl)
+          blob = await res.blob()
+        } else {
+          const res = await fetch(dlUrl)
+          blob = await res.blob()
+        }
+        const file = new File([blob], `postviajes-${safeD}.jpg`, { type: 'image/jpeg' })
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], text: textToCopy })
+        } else {
+          await navigator.share({ text: textToCopy })
+        }
+      } catch {
+        // Si falla share, abrir la red igual
+        window.open(
+          network === 'facebook' ? 'https://www.facebook.com' : 'https://www.instagram.com',
+          '_blank',
+          'noopener'
+        )
+      }
+    } else {
+      // En desktop: descargar imagen + abrir red
+      const a = document.createElement('a')
+      a.href = overlayDataUrl || dlUrl
+      a.download = `postviajes-${safeD}.jpg`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+
+      setTimeout(() => {
+        window.open(
+          network === 'facebook' ? 'https://www.facebook.com' : 'https://www.instagram.com',
+          '_blank',
+          'noopener'
+        )
+      }, 400)
+    }
+
+    setSocialAction(null)
   }
 
   const reset = () => {
