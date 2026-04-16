@@ -334,11 +334,17 @@ export default function Home() {
 
   // Genera imagen compuesta (foto + filtro + overlay) como dataURL
   const generateOverlayCanvas = async (): Promise<string> => {
-    // Pre-cargar la fuente Unbounded para que esté disponible en canvas (especialmente en mobile)
+    // Next.js asigna un nombre interno a las fuentes (ej: __Unbounded_abc123).
+    // Leemos el valor real del CSS custom property que genera next/font/google.
+    const cssFontFamily = getComputedStyle(document.documentElement)
+      .getPropertyValue('--font-unbounded').trim()
+    const CANVAS_FONT = cssFontFamily || 'Unbounded'
+
+    // Forzar carga de la fuente antes de dibujar en canvas
     try {
-      await document.fonts.load('900 96px Unbounded')
-      await document.fonts.load('700 40px Unbounded')
-    } catch { /* Si falla, usa fallback sans-serif */ }
+      await document.fonts.load(`900 96px ${CANVAS_FONT}`)
+      await document.fonts.load(`700 40px ${CANVAS_FONT}`)
+    } catch { /* Si falla, usa fallback */ }
 
     return new Promise((resolve, reject) => {
       if (!selectedPhoto || !result) return reject('Sin datos')
@@ -381,10 +387,10 @@ export default function Home() {
           const destText = result.destination.toUpperCase()
           const MAX_TEXT_W = SIZE_W - 80  // 40px margen a cada lado
           let destFontSize = 96
-          ctx.font = `900 ${destFontSize}px 'Unbounded', sans-serif`
+          ctx.font = `900 ${destFontSize}px ${CANVAS_FONT}, sans-serif`
           while (ctx.measureText(destText).width > MAX_TEXT_W && destFontSize > 40) {
             destFontSize -= 4
-            ctx.font = `900 ${destFontSize}px 'Unbounded', sans-serif`
+            ctx.font = `900 ${destFontSize}px ${CANVAS_FONT}, sans-serif`
           }
           // Si aún no entra con 40px, hacer wrap en dos líneas
           const words = destText.split(' ')
@@ -396,10 +402,10 @@ export default function Home() {
             // Re-ajustar fuente para la línea más larga
             const longest = line1.length > line2.length ? line1 : line2
             destFontSize = 96
-            ctx.font = `900 ${destFontSize}px 'Unbounded', sans-serif`
+            ctx.font = `900 ${destFontSize}px ${CANVAS_FONT}, sans-serif`
             while (ctx.measureText(longest).width > MAX_TEXT_W && destFontSize > 40) {
               destFontSize -= 4
-              ctx.font = `900 ${destFontSize}px 'Unbounded', sans-serif`
+              ctx.font = `900 ${destFontSize}px ${CANVAS_FONT}, sans-serif`
             }
           }
           ctx.fillStyle = 'white'
@@ -422,7 +428,7 @@ export default function Home() {
             if (hasPrice) parts.push(result.price)
             const subLine = parts.join(' — ').toUpperCase()
             const subY = line2 ? textY + lineH + 56 : PHOTO_H / 2 + 36
-            ctx.font = `700 40px 'Unbounded', sans-serif`
+            ctx.font = `700 40px ${CANVAS_FONT}, sans-serif`
             ctx.fillStyle = 'rgba(255,255,255,0.90)'
             ctx.shadowBlur = 10
             ctx.fillText(subLine, SIZE_W / 2, subY)
