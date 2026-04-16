@@ -271,6 +271,10 @@ export default function Home() {
   const [overlayEnabled, setOverlayEnabled] = useState(true)
   const [savingAgency, setSavingAgency] = useState(false)
 
+  // ── Pre-computed canvas blob (para que navigator.share sea instantáneo en iOS) ──
+  const precomputedBlobRef = useRef<Blob | null>(null)
+  const precomputedKeyRef = useRef<string>('')
+
   // Cargar logo: primero localStorage (instantáneo), luego Supabase (sincroniza)
   useEffect(() => {
     // 1. Carga inmediata desde localStorage (sin esperar red)
@@ -524,6 +528,38 @@ export default function Home() {
     }
   }, [processImageFile])
 
+  // Pre-genera el canvas en background cuando el usuario llega al step de overlay/preview,
+  // o cuando cambia foto/estilo/logo. Así navigator.share puede llamarse de forma casi
+  // sincrónica sin que iOS expire el user gesture.
+  useEffect(() => {
+    if (!selectedPhoto || !result || !overlayEnabled) {
+      precomputedBlobRef.current = null
+      precomputedKeyRef.current = ''
+      return
+    }
+    if (uiStep !== 'overlay' && uiStep !== 'preview') return
+
+    const key = `${selectedPhoto.url}|${selectedStyle.id}|${agencyLogo || ''}|${overlayEnabled}`
+    if (precomputedKeyRef.current === key) return  // ya calculado
+
+    precomputedBlobRef.current = null  // invalidar mientras recalcula
+    precomputedKeyRef.current = key
+
+    generateOverlayCanvas()
+      .then(dataUrl => fetch(dataUrl))
+      .then(r => r.blob())
+      .then(blob => {
+        // Solo guardar si la key no cambió mientras esperábamos
+        if (precomputedKeyRef.current === key) {
+          precomputedBlobRef.current = blob
+        }
+      })
+      .catch(() => {
+        precomputedBlobRef.current = null
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPhoto, selectedStyle, agencyLogo, overlayEnabled, uiStep, result])
+
   const processFlyer = async () => {
     if (!flyerBase64) return
     goTo('processing', 'left')
@@ -632,32 +668,33 @@ export default function Home() {
 
     const safeD = result.destination.replace(/[^a-z0-9]/gi, '-').toLowerCase()
 
-    // Si el overlay está activo, generamos la imagen compuesta; sino usamos la original
-    let dlUrl = `/api/download-image?url=${encodeURIComponent(selectedPhoto.url)}&name=postviajes-${safeD}.jpg`
+    // Si el overlay está activo, usamos el blob pre-computado (para iOS) o generamos ahora
+    const dlUrl = `/api/download-image?url=${encodeURIComponent(selectedPhoto.url)}&name=postviajes-${safeD}.jpg`
     let overlayDataUrl: string | null = null
-    if (overlayEnabled && (agencyLogo || result.destination)) {
-      try {
-        overlayDataUrl = await generateOverlayCanvas()
-      } catch { /* si falla el canvas, usa la imagen original */ }
+
+    const isMobile = typeof window !== 'undefined' &&
+      ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+
+    // Helper: obtiene el blob listo para compartir/descargar
+    // En mobile usa el pre-computado si está disponible (evita expirar el user gesture de iOS)
+    const getBlob = async (): Promise<Blob> => {
+      if (overlayEnabled && (agencyLogo || result.destination)) {
+        if (isMobile && precomputedBlobRef.current) {
+          return precomputedBlobRef.current  // instantáneo: no hay await
+        }
+        // Fallback: generar ahora (desktop o si pre-compute no terminó)
+        try {
+          overlayDataUrl = await generateOverlayCanvas()
+          const res = await fetch(overlayDataUrl)
+          return res.blob()
+        } catch { /* usa imagen original */ }
+      }
+      const res = await fetch(dlUrl)
+      return res.blob()
     }
 
     if (network === 'whatsapp') {
       const text = editedIG || result.textInstagram
-      // Detectar móvil: en mobile usamos Web Share API con archivo (foto+texto nativos)
-      // En desktop: descargamos la foto + copiamos texto + abrimos wa.me con el texto
-      const isMobile = typeof window !== 'undefined' &&
-        ('ontouchstart' in window || navigator.maxTouchPoints > 0)
-
-      // Helper: descarga el archivo correcto (canvas o URL original)
-      const getBlob = async (): Promise<Blob> => {
-        if (overlayDataUrl) {
-          const res = await fetch(overlayDataUrl)
-          return res.blob()
-        }
-        const res = await fetch(dlUrl)
-        return res.blob()
-      }
-      const getHref = () => overlayDataUrl || dlUrl
 
       if (isMobile && typeof navigator !== 'undefined' && navigator.share) {
         try {
@@ -675,12 +712,18 @@ export default function Home() {
           window.open('https://wa.me/', '_blank', 'noopener')
         }
       } else {
-        const a = document.createElement('a')
-        a.href = getHref()
-        a.download = `postviajes-${safeD}.jpg`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
+        // Desktop: descargar + abrir WhatsApp
+        try {
+          const blob = await getBlob()
+          const blobUrl = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = blobUrl
+          a.download = `postviajes-${safeD}.jpg`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+        } catch { /* ignora */ }
         if (navigator?.clipboard?.writeText) {
           await navigator.clipboard.writeText(text).catch(() => {})
         }
@@ -697,25 +740,15 @@ export default function Home() {
       ? (editedFB || result.textFacebook)
       : (editedIG || result.textInstagram)
 
-    const isMobile = typeof window !== 'undefined' &&
-      ('ontouchstart' in window || navigator.maxTouchPoints > 0)
-
     // Copy text to clipboard
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(textToCopy).catch(() => {})
     }
 
     if (isMobile && typeof navigator !== 'undefined' && navigator.share) {
-      // En mobile: usar Web Share API para que la imagen llegue al Camera Roll (Recientes)
+      // En mobile: usar Web Share API con blob pre-computado (instantáneo para iOS)
       try {
-        let blob: Blob
-        if (overlayDataUrl) {
-          const res = await fetch(overlayDataUrl)
-          blob = await res.blob()
-        } else {
-          const res = await fetch(dlUrl)
-          blob = await res.blob()
-        }
+        const blob = await getBlob()
         const file = new File([blob], `postviajes-${safeD}.jpg`, { type: 'image/jpeg' })
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({ files: [file], text: textToCopy })
@@ -731,13 +764,18 @@ export default function Home() {
         )
       }
     } else {
-      // En desktop: descargar imagen + abrir red
-      const a = document.createElement('a')
-      a.href = overlayDataUrl || dlUrl
-      a.download = `postviajes-${safeD}.jpg`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+      // En desktop: descargar imagen con blob URL + abrir red
+      try {
+        const blob = await getBlob()
+        const blobUrl = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = blobUrl
+        a.download = `postviajes-${safeD}.jpg`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+      } catch { /* ignora */ }
 
       setTimeout(() => {
         window.open(
