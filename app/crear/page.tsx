@@ -336,7 +336,8 @@ export default function Home() {
   const generateOverlayCanvas = async (): Promise<string> => {
     // Next.js asigna un nombre interno a las fuentes (ej: __Unbounded_abc123).
     // Leemos el valor real del CSS custom property que genera next/font/google.
-    const cssFontFamily = getComputedStyle(document.documentElement)
+    // Next.js setea --font-unbounded en <body>, no en <html>, por eso hay que leerlo de body
+    const cssFontFamily = getComputedStyle(document.body)
       .getPropertyValue('--font-unbounded').trim()
     const CANVAS_FONT = cssFontFamily || 'Unbounded'
 
