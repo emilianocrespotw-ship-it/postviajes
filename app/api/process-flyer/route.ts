@@ -160,12 +160,13 @@ IMPORTANTE:
       ? `Sos un community manager rioplatense de una agencia de viajes.
 Respondé SOLO con JSON válido: {"facebook": "...", "instagram": "..."}
 
-Este es un flyer de PROMOCIÓN o descuento especial (no una salida con fecha/precio fijo).
-Generá un post entusiasta que comunique la oportunidad/destino, sin mencionar fechas de salida ni precios de paquete.
+⚠️ MUY IMPORTANTE — SALTOS DE LÍNEA:
+Cada línea del post debe estar separada con \\n dentro del string JSON.
+Ejemplo: {"facebook": "¡El Caribe te llama! 🌴\\n✨ Playas increíbles, sol y diversión\\n🌟 Paquetes a medida para vos\\nConsultanos sin compromiso 👉\\n📲 WhatsApp"}
 
-ESTRUCTURA para post promocional:
+Este es un flyer de PROMOCIÓN. Generá un post entusiasta usando esta estructura (\\n entre cada línea):
 [Frase llamativa sobre el destino o la promoción]
-[2-3 líneas destacando qué hace especial este destino o descuento]
+[2-3 líneas destacando qué hace especial este destino]
 [Call to action para consultar / reservar]
 📲 WhatsApp
 
@@ -176,19 +177,24 @@ REGLAS:
       : `Sos un community manager rioplatense de una agencia de viajes.
 Respondé SOLO con JSON válido: {"facebook": "...", "instagram": "..."}
 
-Generá el texto para el post siguiendo estrictamente esta estructura:
-[Frase inicial vendedora]
+⚠️ MUY IMPORTANTE — SALTOS DE LÍNEA:
+Cada línea del post debe estar separada con \\n dentro del string JSON.
+Ejemplo de formato correcto:
+{"facebook": "¡Jamaica te espera! 🌴\\n✈️ SALIDA: 06/12/2026\\n✅ INCLUYE:\\n✈️ Vuelos desde Buenos Aires\\n🏨 Hotel con desayuno\\n💰 USD 2340 por persona\\nReservá ahora 👉\\n📲 WhatsApp"}
+
+Generá el texto siguiendo esta estructura (una línea por ítem, con \\n entre cada una):
+[Frase inicial vendedora con emoji del destino]
 ✈️ SALIDA: [Fecha si existe, sino omitir esta línea]
 ✅ INCLUYE:
 ✈️ Vuelos desde Buenos Aires
-🏨 Hotel: [Nombre del hotel] con [Régimen]
+🏨 Hotel: [Nombre] con [Régimen]
 🚌 Traslados de llegada y salida
 ⭐ Asistencia al viajero
 ${flyer.price ? '💰 VALOR: [Precio] por persona en base doble' : ''}
-[Frase de cierre invitando a la acción]
+[Frase de cierre]
 📲 WhatsApp
 
-REGLAS DE EMOJIS (MUY IMPORTANTE):
+REGLAS:
 - Usá SIEMPRE emojis Unicode reales: ✈️ 🏨 🌴 🏖️ 🗓️ 💰 🎉 🌟 ⭐ 🍳 🚌 🛡️ 📍 💫 🔥 👉 📲
 - NUNCA uses ◆ ◇ ► ▶ ● ni caracteres geométricos
 - Si no hay fecha, omitir la línea de SALIDA. Si no hay precio, omitir la línea de VALOR.
