@@ -433,7 +433,13 @@ export default function Home() {
             if (hasPrice) parts.push(result.price)
             const subLine = parts.join(' — ').toUpperCase()
             const subY = line2 ? textY + lineH + 56 : PHOTO_H / 2 + 36
-            ctx.font = `700 40px ${CANVAS_FONT}, sans-serif`
+            // Auto-reducir fuente si la línea de fecha/precio no entra
+            let subFontSize = 40
+            ctx.font = `700 ${subFontSize}px ${CANVAS_FONT}, sans-serif`
+            while (ctx.measureText(subLine).width > MAX_TEXT_W && subFontSize > 20) {
+              subFontSize -= 2
+              ctx.font = `700 ${subFontSize}px ${CANVAS_FONT}, sans-serif`
+            }
             ctx.fillStyle = 'rgba(255,255,255,0.90)'
             ctx.shadowBlur = 10
             ctx.fillText(subLine, SIZE_W / 2, subY)

@@ -12,7 +12,21 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'PostViajes — Flyer a Post en segundos',
-  description: 'La herramienta definitiva para agencias de viajes...',
+  description: 'La herramienta definitiva para agencias de viajes. Convertí cualquier flyer en un post profesional para Instagram y Facebook en segundos, con IA.',
+  metadataBase: new URL('https://postviajes.com.ar'),
+  openGraph: {
+    title: 'PostViajes — Flyer a Post en segundos',
+    description: 'Convertí cualquier flyer en un post profesional para Instagram y Facebook en segundos, con IA.',
+    url: 'https://postviajes.com.ar',
+    siteName: 'PostViajes',
+    locale: 'es_AR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'PostViajes — Flyer a Post en segundos',
+    description: 'Convertí cualquier flyer en un post profesional para redes sociales en segundos, con IA.',
+  },
 }
 
 export default function RootLayout({
