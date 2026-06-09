@@ -487,8 +487,8 @@ export default function Home() {
           if (agencyLogo) {
             const logoImg = new window.Image()
             logoImg.onload = () => {
-              const LOGO_MAX_H = 110
-              const LOGO_MAX_W = 240
+              const LOGO_MAX_H = 220
+              const LOGO_MAX_W = 480
               const s = Math.min(LOGO_MAX_H / logoImg.height, LOGO_MAX_W / logoImg.width)
               const logoW = logoImg.width * s
               const logoH = logoImg.height * s
@@ -1250,7 +1250,7 @@ export default function Home() {
                     {/* Logo esquina superior derecha */}
                     {agencyLogo && (
                       <div className="absolute top-3 right-3">
-                        <img src={agencyLogo} alt="Logo" className="h-8 w-auto max-w-[80px] object-contain" style={{ filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.5))' }} />
+                        <img src={agencyLogo} alt="Logo" className="h-16 w-auto max-w-[160px] object-contain" style={{ filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.5))' }} />
                       </div>
                     )}
                   </>
@@ -1369,7 +1369,7 @@ export default function Home() {
                         </div>
                         {agencyLogo && (
                           <div className="absolute top-3 right-3">
-                            <img src={agencyLogo} alt="Logo" className="h-8 w-auto max-w-[80px] object-contain" style={{ filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.5))' }} />
+                            <img src={agencyLogo} alt="Logo" className="h-16 w-auto max-w-[160px] object-contain" style={{ filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.5))' }} />
                           </div>
                         )}
                       </>
