@@ -373,38 +373,32 @@ export default function Home() {
         ctx.filter = 'none'
 
         if (overlayEnabled) {
-          const PHOTO_H = Math.round(SIZE_H * 0.88)  // 12% banner
-          const BANNER_H = SIZE_H - PHOTO_H
+          const PADDING = 60
+          const MAX_TEXT_W = SIZE_W - PADDING * 2
 
-          // Banner blanco abajo
-          ctx.fillStyle = 'white'
-          ctx.fillRect(0, PHOTO_H, SIZE_W, BANNER_H)
-
-          // Sombra radial detrás del texto
-          const cx = SIZE_W / 2, cy = PHOTO_H / 2
-          const radGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, SIZE_W * 0.45)
-          radGrad.addColorStop(0, 'rgba(0,0,0,0.25)')
-          radGrad.addColorStop(1, 'rgba(0,0,0,0)')
-          ctx.fillStyle = radGrad
-          ctx.fillRect(0, 0, SIZE_W, PHOTO_H)
+          // Gradiente lineal de abajo hacia arriba
+          const grad = ctx.createLinearGradient(0, SIZE_H, 0, SIZE_H * 0.38)
+          grad.addColorStop(0, 'rgba(0,0,0,0.88)')
+          grad.addColorStop(0.5, 'rgba(0,0,0,0.45)')
+          grad.addColorStop(1, 'rgba(0,0,0,0)')
+          ctx.fillStyle = grad
+          ctx.fillRect(0, 0, SIZE_W, SIZE_H)
 
           // Destino — auto-ajuste de fuente para que entre en el ancho
           const destText = result.destination.toUpperCase()
-          const MAX_TEXT_W = SIZE_W - 80  // 40px margen a cada lado
           let destFontSize = 96
           ctx.font = `900 ${destFontSize}px ${CANVAS_FONT}, sans-serif`
           while (ctx.measureText(destText).width > MAX_TEXT_W && destFontSize > 40) {
             destFontSize -= 4
             ctx.font = `900 ${destFontSize}px ${CANVAS_FONT}, sans-serif`
           }
-          // Si aún no entra con 40px, hacer wrap en dos líneas
+          // Wrap en dos líneas si es necesario
           const words = destText.split(' ')
           let line1 = destText, line2 = ''
           if (ctx.measureText(destText).width > MAX_TEXT_W && words.length > 1) {
             const mid = Math.ceil(words.length / 2)
             line1 = words.slice(0, mid).join(' ')
             line2 = words.slice(mid).join(' ')
-            // Re-ajustar fuente para la línea más larga
             const longest = line1.length > line2.length ? line1 : line2
             destFontSize = 96
             ctx.font = `900 ${destFontSize}px ${CANVAS_FONT}, sans-serif`
@@ -413,51 +407,97 @@ export default function Home() {
               ctx.font = `900 ${destFontSize}px ${CANVAS_FONT}, sans-serif`
             }
           }
-          ctx.fillStyle = 'white'
-          ctx.shadowColor = 'rgba(0,0,0,0.35)'
-          ctx.shadowBlur = 12
-          ctx.textAlign = 'center'
-          const lineH = destFontSize * 1.15
-          const textY = line2
-            ? PHOTO_H / 2 - 40 - lineH / 2   // dos líneas: centrar el bloque
-            : PHOTO_H / 2 - 40                // una línea: igual que antes
-          ctx.fillText(line1, SIZE_W / 2, textY)
-          if (line2) ctx.fillText(line2, SIZE_W / 2, textY + lineH)
 
-          // Fecha + precio — solo si hay contenido real
           const hasDates = result.dates && result.dates.trim() !== ''
           const hasPrice = result.price && result.price.trim() !== ''
-          if (hasDates || hasPrice) {
-            const parts: string[] = []
-            if (hasDates) parts.push(formatSalida(result.dates))
-            if (hasPrice) parts.push(result.price)
-            const subLine = parts.join(' — ').toUpperCase()
-            const subY = line2 ? textY + lineH + 56 : PHOTO_H / 2 + 36
-            // Auto-reducir fuente si la línea de fecha/precio no entra
-            let subFontSize = 40
-            ctx.font = `700 ${subFontSize}px ${CANVAS_FONT}, sans-serif`
-            while (ctx.measureText(subLine).width > MAX_TEXT_W && subFontSize > 20) {
-              subFontSize -= 2
-              ctx.font = `700 ${subFontSize}px ${CANVAS_FONT}, sans-serif`
-            }
-            ctx.fillStyle = 'rgba(255,255,255,0.90)'
-            ctx.shadowBlur = 10
-            ctx.fillText(subLine, SIZE_W / 2, subY)
+          const lineH = destFontSize * 1.15
+          const DATE_FONT = 32
+          const PRICE_FONT = 38
+          const BADGE_PAD_Y = 14
+          const destLines = line2 ? 2 : 1
+          const totalH = (destLines * lineH)
+            + (hasDates ? DATE_FONT + 20 : 0)
+            + (hasPrice ? PRICE_FONT + BADGE_PAD_Y * 2 + 24 : 0)
+          const BOTTOM_MARGIN = 80
+          let curY = SIZE_H - BOTTOM_MARGIN - totalH
+
+          // Destino
+          ctx.fillStyle = 'white'
+          ctx.shadowColor = 'rgba(0,0,0,0.55)'
+          ctx.shadowBlur = 16
+          ctx.textAlign = 'left'
+          ctx.font = `900 ${destFontSize}px ${CANVAS_FONT}, sans-serif`
+          ctx.fillText(line1, PADDING, curY + lineH)
+          if (line2) {
+            ctx.fillText(line2, PADDING, curY + lineH * 2)
+            curY += lineH
           }
+          curY += lineH
+
+          // Fecha (separada, más pequeña)
+          if (hasDates) {
+            curY += 20
+            ctx.font = `700 ${DATE_FONT}px ${CANVAS_FONT}, sans-serif`
+            ctx.fillStyle = 'rgba(255,255,255,0.80)'
+            ctx.shadowBlur = 8
+            const dateText = formatSalida(result.dates).toUpperCase()
+            let df = DATE_FONT
+            while (ctx.measureText(dateText).width > MAX_TEXT_W && df > 16) {
+              df -= 2
+              ctx.font = `700 ${df}px ${CANVAS_FONT}, sans-serif`
+            }
+            ctx.fillText(dateText, PADDING, curY + df)
+            curY += df
+          }
+
+          // Badge de precio naranja
+          if (hasPrice) {
+            ctx.shadowBlur = 0
+            curY += 24
+            ctx.font = `900 ${PRICE_FONT}px ${CANVAS_FONT}, sans-serif`
+            const priceText = result.price.toUpperCase()
+            const BADGE_PAD_X = 32
+            const badgeW = ctx.measureText(priceText).width + BADGE_PAD_X * 2
+            const badgeH = PRICE_FONT + BADGE_PAD_Y * 2
+            const r = 14
+            // Fondo naranja redondeado
+            ctx.fillStyle = '#E8782E'
+            ctx.beginPath()
+            ctx.moveTo(PADDING + r, curY)
+            ctx.lineTo(PADDING + badgeW - r, curY)
+            ctx.quadraticCurveTo(PADDING + badgeW, curY, PADDING + badgeW, curY + r)
+            ctx.lineTo(PADDING + badgeW, curY + badgeH - r)
+            ctx.quadraticCurveTo(PADDING + badgeW, curY + badgeH, PADDING + badgeW - r, curY + badgeH)
+            ctx.lineTo(PADDING + r, curY + badgeH)
+            ctx.quadraticCurveTo(PADDING, curY + badgeH, PADDING, curY + badgeH - r)
+            ctx.lineTo(PADDING, curY + r)
+            ctx.quadraticCurveTo(PADDING, curY, PADDING + r, curY)
+            ctx.closePath()
+            ctx.fill()
+            // Texto del precio
+            ctx.fillStyle = 'white'
+            ctx.fillText(priceText, PADDING + BADGE_PAD_X, curY + BADGE_PAD_Y + PRICE_FONT * 0.85)
+          }
+
           ctx.shadowBlur = 0
           ctx.textAlign = 'left'
 
-          // Logo en el banner blanco — a la derecha
+          // Logo en esquina superior derecha como watermark
           const drawFinal = () => resolve(canvas.toDataURL('image/jpeg', 0.92))
           if (agencyLogo) {
             const logoImg = new window.Image()
             logoImg.onload = () => {
-              // Logo centrado en el banner, llena casi todo el alto (8px margen total)
-              const logoH = BANNER_H - 8
-              const logoW = Math.round((logoImg.width / logoImg.height) * logoH)
-              const logoX = (SIZE_W - logoW) / 2  // centrado horizontalmente
-              const logoY = PHOTO_H + (BANNER_H - logoH) / 2  // centrado verticalmente
+              const LOGO_MAX_H = 110
+              const LOGO_MAX_W = 240
+              const s = Math.min(LOGO_MAX_H / logoImg.height, LOGO_MAX_W / logoImg.width)
+              const logoW = logoImg.width * s
+              const logoH = logoImg.height * s
+              const logoX = SIZE_W - logoW - 48
+              const logoY = 48
+              ctx.shadowColor = 'rgba(0,0,0,0.45)'
+              ctx.shadowBlur = 14
               ctx.drawImage(logoImg, logoX, logoY, logoW, logoH)
+              ctx.shadowBlur = 0
               drawFinal()
             }
             logoImg.onerror = drawFinal
@@ -1177,9 +1217,8 @@ export default function Home() {
             </div>
 
             {/* Preview del overlay sobre la foto */}
-            <div className="rounded-3xl overflow-hidden w-full mb-4 bg-white" style={{ aspectRatio: '4/5' }}>
-              {/* Foto con texto centrado — 88% del alto */}
-              <div className="relative w-full" style={{ height: overlayEnabled ? '88%' : '100%' }}>
+            <div className="rounded-3xl overflow-hidden w-full mb-4" style={{ aspectRatio: '4/5' }}>
+              <div className="relative w-full h-full">
                 <img
                   src={selectedPhoto.thumbnail}
                   alt={result.destination}
@@ -1188,31 +1227,35 @@ export default function Home() {
                 />
                 {overlayEnabled && (
                   <>
-                    {/* Sombra radial detrás del texto */}
-                    <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 50%, rgba(0,0,0,0.22) 0%, transparent 65%)' }} />
-                    {/* Texto centrado — un poco más arriba */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6" style={{ paddingBottom: '8%' }}>
-                      <p className="uppercase leading-tight break-words w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(20px, 6.5vw, 42px)', fontWeight: 900, textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}>
+                    {/* Gradiente lineal de abajo hacia arriba */}
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 40%, transparent 70%)' }} />
+                    {/* Texto abajo a la izquierda */}
+                    <div className="absolute inset-0 flex flex-col justify-end text-white px-5 pb-5">
+                      <p className="uppercase leading-tight break-words w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(18px, 5.5vw, 38px)', fontWeight: 900, textShadow: '0 2px 12px rgba(0,0,0,0.5)' }}>
                         {result.destination}
                       </p>
-                      {(result.dates?.trim() || result.price?.trim()) && (
-                        <p className="mt-2 uppercase tracking-widest opacity-90" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(8px, 2vw, 11px)', fontWeight: 700, textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
-                          {[result.dates?.trim() ? formatSalida(result.dates) : null, result.price?.trim() || null].filter(Boolean).join(' — ')}
+                      {result.dates?.trim() && (
+                        <p className="mt-1 uppercase opacity-80" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(7px, 1.8vw, 10px)', fontWeight: 700, letterSpacing: '0.1em' }}>
+                          {formatSalida(result.dates)}
                         </p>
                       )}
+                      {result.price?.trim() && (
+                        <div className="mt-2">
+                          <span className="inline-block bg-[#E8782E] text-white font-black uppercase px-3 py-1 rounded-lg" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(9px, 2.2vw, 13px)' }}>
+                            {result.price}
+                          </span>
+                        </div>
+                      )}
                     </div>
+                    {/* Logo esquina superior derecha */}
+                    {agencyLogo && (
+                      <div className="absolute top-3 right-3">
+                        <img src={agencyLogo} alt="Logo" className="h-8 w-auto max-w-[80px] object-contain" style={{ filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.5))' }} />
+                      </div>
+                    )}
                   </>
                 )}
               </div>
-              {/* Banner blanco chico — solo logo centrado */}
-              {overlayEnabled && (
-                <div className="flex items-center justify-center px-2" style={{ height: '12%' }}>
-                  {agencyLogo
-                    ? <img src={agencyLogo} alt="Logo" className="h-full w-auto max-w-[260px] object-contain py-1" />
-                    : <span className="text-xs text-gray-300 italic">sin logo</span>
-                  }
-                </div>
-              )}
             </div>
 
             {/* Toggle overlay */}
@@ -1296,8 +1339,8 @@ export default function Home() {
                 </div>
 
                 {/* Foto con filtro + overlay */}
-                <div className="rounded-3xl overflow-hidden mb-4 bg-white" style={{ aspectRatio: '4/5' }}>
-                  <div className="relative w-full" style={{ height: overlayEnabled ? '88%' : '100%' }}>
+                <div className="rounded-3xl overflow-hidden mb-4" style={{ aspectRatio: '4/5' }}>
+                  <div className="relative w-full h-full">
                     <img
                       src={selectedPhoto.thumbnail}
                       alt={result.destination}
@@ -1306,28 +1349,32 @@ export default function Home() {
                     />
                     {overlayEnabled && (
                       <>
-                        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center 50%, rgba(0,0,0,0.22) 0%, transparent 65%)' }} />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-6">
-                          <p className="uppercase leading-none" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(26px, 7.5vw, 46px)', fontWeight: 900, textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 40%, transparent 70%)' }} />
+                        <div className="absolute inset-0 flex flex-col justify-end text-white px-5 pb-5">
+                          <p className="uppercase leading-tight break-words w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(20px, 6vw, 40px)', fontWeight: 900, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
                             {result.destination}
                           </p>
-                          {(result.dates || result.price) && (
-                            <p className="mt-2 uppercase tracking-widest opacity-90" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(8px, 2vw, 11px)', fontWeight: 700, textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
-                              {formatSalida(result.dates)}{result.price ? ` — ${result.price}` : ''}
+                          {result.dates?.trim() && (
+                            <p className="mt-1 uppercase opacity-80" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(7px, 1.8vw, 10px)', fontWeight: 700, letterSpacing: '0.1em' }}>
+                              {formatSalida(result.dates)}
                             </p>
                           )}
+                          {result.price?.trim() && (
+                            <div className="mt-2">
+                              <span className="inline-block bg-[#E8782E] text-white font-black uppercase px-3 py-1 rounded-lg" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(9px, 2.2vw, 13px)' }}>
+                                {result.price}
+                              </span>
+                            </div>
+                          )}
                         </div>
+                        {agencyLogo && (
+                          <div className="absolute top-3 right-3">
+                            <img src={agencyLogo} alt="Logo" className="h-8 w-auto max-w-[80px] object-contain" style={{ filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.5))' }} />
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
-                  {overlayEnabled && (
-                    <div className="flex items-center justify-center px-4" style={{ height: '12%' }}>
-                      {agencyLogo
-                        ? <img src={agencyLogo} alt="Logo" className="h-16 w-auto max-w-[200px] object-contain" />
-                        : <span className="text-xs text-gray-300 italic">sin logo</span>
-                      }
-                    </div>
-                  )}
                 </div>
 
                 {/* Texto del post */}
