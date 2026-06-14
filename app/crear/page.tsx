@@ -376,14 +376,8 @@ export default function Home() {
           const PADDING = 60
           const MAX_TEXT_W = SIZE_W - PADDING * 2
 
-          // Gradiente centrado: más oscuro en la franja media donde va el texto
-          const grad = ctx.createLinearGradient(0, 0, 0, SIZE_H)
-          grad.addColorStop(0,    'rgba(0,0,0,0.15)')
-          grad.addColorStop(0.30, 'rgba(0,0,0,0.60)')
-          grad.addColorStop(0.50, 'rgba(0,0,0,0.70)')
-          grad.addColorStop(0.70, 'rgba(0,0,0,0.60)')
-          grad.addColorStop(1,    'rgba(0,0,0,0.15)')
-          ctx.fillStyle = grad
+          // Overlay mínimo
+          ctx.fillStyle = 'rgba(0,0,0,0.30)'
           ctx.fillRect(0, 0, SIZE_W, SIZE_H)
 
           // Destino — auto-ajuste de fuente para que entre en el ancho
@@ -477,8 +471,8 @@ export default function Home() {
               const logoH = logoImg.height * s
               const logoX = SIZE_W - logoW - 48
               const logoY = 48
-              ctx.shadowColor = 'rgba(0,0,0,0.85)'
-              ctx.shadowBlur = 32
+              ctx.shadowColor = 'rgba(255,255,255,0.75)'
+              ctx.shadowBlur = 24
               ctx.drawImage(logoImg, logoX, logoY, logoW, logoH)
               ctx.shadowBlur = 0
               drawFinal()
@@ -1210,8 +1204,8 @@ export default function Home() {
                 />
                 {overlayEnabled && (
                   <>
-                    {/* Gradiente centrado */}
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.60) 30%, rgba(0,0,0,0.70) 50%, rgba(0,0,0,0.60) 70%, rgba(0,0,0,0.15) 100%)' }} />
+                    {/* Overlay mínimo */}
+                    <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.30)' }} />
                     {/* Texto centrado verticalmente */}
                     <div className="absolute inset-0 flex flex-col justify-center items-center text-white px-4">
                       <p className="uppercase leading-tight text-center w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(18px, 5.5vw, 38px)', fontWeight: 900, textShadow: '0 2px 12px rgba(0,0,0,0.5)' }}>
@@ -1231,7 +1225,7 @@ export default function Home() {
                     {/* Logo esquina superior derecha */}
                     {agencyLogo && (
                       <div className="absolute top-3 right-3">
-                        <img src={agencyLogo} alt="Logo" className="h-24 w-auto max-w-[220px] object-contain" style={{ filter: 'drop-shadow(0 2px 12px rgba(0,0,0,0.9)) drop-shadow(0 0 20px rgba(0,0,0,0.7))' }} />
+                        <img src={agencyLogo} alt="Logo" className="h-24 w-auto max-w-[220px] object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.75))' }} />
                       </div>
                     )}
                   </>
@@ -1348,7 +1342,7 @@ export default function Home() {
                         </div>
                         {agencyLogo && (
                           <div className="absolute top-3 right-3">
-                            <img src={agencyLogo} alt="Logo" className="h-24 w-auto max-w-[220px] object-contain" style={{ filter: 'drop-shadow(0 2px 12px rgba(0,0,0,0.9)) drop-shadow(0 0 20px rgba(0,0,0,0.7))' }} />
+                            <img src={agencyLogo} alt="Logo" className="h-24 w-auto max-w-[220px] object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.75))' }} />
                           </div>
                         )}
                       </>
