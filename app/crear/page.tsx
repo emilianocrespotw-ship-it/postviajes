@@ -377,7 +377,7 @@ export default function Home() {
           const MAX_TEXT_W = SIZE_W - PADDING * 2
 
           // Overlay mínimo
-          ctx.fillStyle = 'rgba(0,0,0,0.30)'
+          ctx.fillStyle = 'rgba(0,0,0,0.15)'
           ctx.fillRect(0, 0, SIZE_W, SIZE_H)
 
           // Destino — auto-ajuste de fuente para que entre en el ancho
@@ -471,10 +471,23 @@ export default function Home() {
               const logoH = logoImg.height * s
               const logoX = SIZE_W - logoW - 48
               const logoY = 48
-              ctx.shadowColor = 'rgba(255,255,255,0.75)'
-              ctx.shadowBlur = 24
+              const PAD = 24
+              ctx.fillStyle = 'rgba(255,255,255,0.15)'
+              const rx = 20
+              const bx = logoX - PAD, by = logoY - PAD, bw = logoW + PAD * 2, bh = logoH + PAD * 2
+              ctx.beginPath()
+              ctx.moveTo(bx + rx, by)
+              ctx.lineTo(bx + bw - rx, by)
+              ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + rx)
+              ctx.lineTo(bx + bw, by + bh - rx)
+              ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - rx, by + bh)
+              ctx.lineTo(bx + rx, by + bh)
+              ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - rx)
+              ctx.lineTo(bx, by + rx)
+              ctx.quadraticCurveTo(bx, by, bx + rx, by)
+              ctx.closePath()
+              ctx.fill()
               ctx.drawImage(logoImg, logoX, logoY, logoW, logoH)
-              ctx.shadowBlur = 0
               drawFinal()
             }
             logoImg.onerror = drawFinal
@@ -1205,7 +1218,7 @@ export default function Home() {
                 {overlayEnabled && (
                   <>
                     {/* Overlay mínimo */}
-                    <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.30)' }} />
+                    <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.15)' }} />
                     {/* Texto centrado verticalmente */}
                     <div className="absolute inset-0 flex flex-col justify-center items-center text-white px-4">
                       <p className="uppercase leading-tight text-center w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(18px, 5.5vw, 38px)', fontWeight: 900, textShadow: '0 2px 12px rgba(0,0,0,0.5)' }}>
@@ -1225,7 +1238,9 @@ export default function Home() {
                     {/* Logo esquina superior derecha */}
                     {agencyLogo && (
                       <div className="absolute top-3 right-3">
-                        <img src={agencyLogo} alt="Logo" className="h-24 w-auto max-w-[220px] object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.75))' }} />
+                        <div className="p-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)' }}>
+                        <img src={agencyLogo} alt="Logo" className="h-20 w-auto max-w-[200px] object-contain" />
+                      </div>
                       </div>
                     )}
                   </>
@@ -1342,7 +1357,9 @@ export default function Home() {
                         </div>
                         {agencyLogo && (
                           <div className="absolute top-3 right-3">
-                            <img src={agencyLogo} alt="Logo" className="h-24 w-auto max-w-[220px] object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.75))' }} />
+                            <div className="p-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)' }}>
+                        <img src={agencyLogo} alt="Logo" className="h-20 w-auto max-w-[200px] object-contain" />
+                      </div>
                           </div>
                         )}
                       </>
