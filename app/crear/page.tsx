@@ -425,11 +425,11 @@ export default function Home() {
           ctx.fillStyle = 'white'
           ctx.shadowColor = 'rgba(0,0,0,0.55)'
           ctx.shadowBlur = 16
-          ctx.textAlign = 'left'
+          ctx.textAlign = 'center'
           ctx.font = `900 ${destFontSize}px ${CANVAS_FONT}, sans-serif`
-          ctx.fillText(line1, PADDING, curY + lineH)
+          ctx.fillText(line1, SIZE_W / 2, curY + lineH)
           if (line2) {
-            ctx.fillText(line2, PADDING, curY + lineH * 2)
+            ctx.fillText(line2, SIZE_W / 2, curY + lineH * 2)
             curY += lineH
           }
           curY += lineH
@@ -446,37 +446,18 @@ export default function Home() {
               df -= 2
               ctx.font = `700 ${df}px ${CANVAS_FONT}, sans-serif`
             }
-            ctx.fillText(dateText, PADDING, curY + df)
+            ctx.fillText(dateText, SIZE_W / 2, curY + df)
             curY += df
           }
 
-          // Badge de precio naranja
+          // Precio en blanco centrado
           if (hasPrice) {
-            ctx.shadowBlur = 0
+            ctx.shadowBlur = 8
             curY += 24
             ctx.font = `900 ${PRICE_FONT}px ${CANVAS_FONT}, sans-serif`
             const priceText = result.price.toUpperCase()
-            const BADGE_PAD_X = 32
-            const badgeW = ctx.measureText(priceText).width + BADGE_PAD_X * 2
-            const badgeH = PRICE_FONT + BADGE_PAD_Y * 2
-            const r = 14
-            // Fondo naranja redondeado
-            ctx.fillStyle = '#E8782E'
-            ctx.beginPath()
-            ctx.moveTo(PADDING + r, curY)
-            ctx.lineTo(PADDING + badgeW - r, curY)
-            ctx.quadraticCurveTo(PADDING + badgeW, curY, PADDING + badgeW, curY + r)
-            ctx.lineTo(PADDING + badgeW, curY + badgeH - r)
-            ctx.quadraticCurveTo(PADDING + badgeW, curY + badgeH, PADDING + badgeW - r, curY + badgeH)
-            ctx.lineTo(PADDING + r, curY + badgeH)
-            ctx.quadraticCurveTo(PADDING, curY + badgeH, PADDING, curY + badgeH - r)
-            ctx.lineTo(PADDING, curY + r)
-            ctx.quadraticCurveTo(PADDING, curY, PADDING + r, curY)
-            ctx.closePath()
-            ctx.fill()
-            // Texto del precio
             ctx.fillStyle = 'white'
-            ctx.fillText(priceText, PADDING + BADGE_PAD_X, curY + BADGE_PAD_Y + PRICE_FONT * 0.85)
+            ctx.fillText(priceText, SIZE_W / 2, curY + PRICE_FONT * 0.85)
           }
 
           ctx.shadowBlur = 0
@@ -1229,22 +1210,20 @@ export default function Home() {
                   <>
                     {/* Gradiente lineal de abajo hacia arriba */}
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 40%, transparent 70%)' }} />
-                    {/* Texto abajo a la izquierda */}
-                    <div className="absolute inset-0 flex flex-col justify-end text-white px-5 pb-5">
-                      <p className="uppercase leading-tight break-words w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(18px, 5.5vw, 38px)', fontWeight: 900, textShadow: '0 2px 12px rgba(0,0,0,0.5)' }}>
+                    {/* Texto centrado abajo */}
+                    <div className="absolute inset-0 flex flex-col justify-end items-center text-white pb-5 px-4">
+                      <p className="uppercase leading-tight text-center w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(18px, 5.5vw, 38px)', fontWeight: 900, textShadow: '0 2px 12px rgba(0,0,0,0.5)' }}>
                         {result.destination}
                       </p>
                       {result.dates?.trim() && (
-                        <p className="mt-1 uppercase opacity-80" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(7px, 1.8vw, 10px)', fontWeight: 700, letterSpacing: '0.1em' }}>
+                        <p className="mt-1 uppercase opacity-80 text-center" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(7px, 1.8vw, 10px)', fontWeight: 700, letterSpacing: '0.1em' }}>
                           {formatSalida(result.dates)}
                         </p>
                       )}
                       {result.price?.trim() && (
-                        <div className="mt-2">
-                          <span className="inline-block bg-[#E8782E] text-white font-black uppercase px-3 py-1 rounded-lg" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(9px, 2.2vw, 13px)' }}>
-                            {result.price}
-                          </span>
-                        </div>
+                        <p className="mt-2 uppercase text-center opacity-90" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(9px, 2.2vw, 13px)', fontWeight: 900 }}>
+                          {result.price}
+                        </p>
                       )}
                     </div>
                     {/* Logo esquina superior derecha */}
@@ -1350,21 +1329,19 @@ export default function Home() {
                     {overlayEnabled && (
                       <>
                         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 40%, transparent 70%)' }} />
-                        <div className="absolute inset-0 flex flex-col justify-end text-white px-5 pb-5">
-                          <p className="uppercase leading-tight break-words w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(20px, 6vw, 40px)', fontWeight: 900, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
+                        <div className="absolute inset-0 flex flex-col justify-end items-center text-white pb-5 px-4">
+                          <p className="uppercase leading-tight text-center w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(20px, 6vw, 40px)', fontWeight: 900, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
                             {result.destination}
                           </p>
                           {result.dates?.trim() && (
-                            <p className="mt-1 uppercase opacity-80" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(7px, 1.8vw, 10px)', fontWeight: 700, letterSpacing: '0.1em' }}>
+                            <p className="mt-1 uppercase opacity-80 text-center" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(7px, 1.8vw, 10px)', fontWeight: 700, letterSpacing: '0.1em' }}>
                               {formatSalida(result.dates)}
                             </p>
                           )}
                           {result.price?.trim() && (
-                            <div className="mt-2">
-                              <span className="inline-block bg-[#E8782E] text-white font-black uppercase px-3 py-1 rounded-lg" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(9px, 2.2vw, 13px)' }}>
-                                {result.price}
-                              </span>
-                            </div>
+                            <p className="mt-2 uppercase text-center opacity-90" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(9px, 2.2vw, 13px)', fontWeight: 900 }}>
+                              {result.price}
+                            </p>
                           )}
                         </div>
                         {agencyLogo && (
