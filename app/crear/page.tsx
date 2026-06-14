@@ -376,11 +376,13 @@ export default function Home() {
           const PADDING = 60
           const MAX_TEXT_W = SIZE_W - PADDING * 2
 
-          // Gradiente lineal de abajo hacia arriba
-          const grad = ctx.createLinearGradient(0, SIZE_H, 0, SIZE_H * 0.38)
-          grad.addColorStop(0, 'rgba(0,0,0,0.88)')
-          grad.addColorStop(0.5, 'rgba(0,0,0,0.45)')
-          grad.addColorStop(1, 'rgba(0,0,0,0)')
+          // Gradiente centrado: más oscuro en la franja media donde va el texto
+          const grad = ctx.createLinearGradient(0, 0, 0, SIZE_H)
+          grad.addColorStop(0,    'rgba(0,0,0,0.15)')
+          grad.addColorStop(0.30, 'rgba(0,0,0,0.60)')
+          grad.addColorStop(0.50, 'rgba(0,0,0,0.70)')
+          grad.addColorStop(0.70, 'rgba(0,0,0,0.60)')
+          grad.addColorStop(1,    'rgba(0,0,0,0.15)')
           ctx.fillStyle = grad
           ctx.fillRect(0, 0, SIZE_W, SIZE_H)
 
@@ -418,8 +420,8 @@ export default function Home() {
           const totalH = (destLines * lineH)
             + (hasDates ? DATE_FONT + 20 : 0)
             + (hasPrice ? PRICE_FONT + BADGE_PAD_Y * 2 + 24 : 0)
-          const BOTTOM_MARGIN = 80
-          let curY = SIZE_H - BOTTOM_MARGIN - totalH
+          // Centrado vertical
+          let curY = SIZE_H / 2 - totalH / 2
 
           // Destino
           ctx.fillStyle = 'white'
@@ -468,15 +470,15 @@ export default function Home() {
           if (agencyLogo) {
             const logoImg = new window.Image()
             logoImg.onload = () => {
-              const LOGO_MAX_H = 220
-              const LOGO_MAX_W = 480
+              const LOGO_MAX_H = 320
+              const LOGO_MAX_W = 620
               const s = Math.min(LOGO_MAX_H / logoImg.height, LOGO_MAX_W / logoImg.width)
               const logoW = logoImg.width * s
               const logoH = logoImg.height * s
               const logoX = SIZE_W - logoW - 48
               const logoY = 48
-              ctx.shadowColor = 'rgba(0,0,0,0.45)'
-              ctx.shadowBlur = 14
+              ctx.shadowColor = 'rgba(0,0,0,0.85)'
+              ctx.shadowBlur = 32
               ctx.drawImage(logoImg, logoX, logoY, logoW, logoH)
               ctx.shadowBlur = 0
               drawFinal()
@@ -1208,10 +1210,10 @@ export default function Home() {
                 />
                 {overlayEnabled && (
                   <>
-                    {/* Gradiente lineal de abajo hacia arriba */}
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 40%, transparent 70%)' }} />
-                    {/* Texto centrado abajo */}
-                    <div className="absolute inset-0 flex flex-col justify-end items-center text-white pb-5 px-4">
+                    {/* Gradiente centrado */}
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.60) 30%, rgba(0,0,0,0.70) 50%, rgba(0,0,0,0.60) 70%, rgba(0,0,0,0.15) 100%)' }} />
+                    {/* Texto centrado verticalmente */}
+                    <div className="absolute inset-0 flex flex-col justify-center items-center text-white px-4">
                       <p className="uppercase leading-tight text-center w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(18px, 5.5vw, 38px)', fontWeight: 900, textShadow: '0 2px 12px rgba(0,0,0,0.5)' }}>
                         {result.destination}
                       </p>
@@ -1229,7 +1231,7 @@ export default function Home() {
                     {/* Logo esquina superior derecha */}
                     {agencyLogo && (
                       <div className="absolute top-3 right-3">
-                        <img src={agencyLogo} alt="Logo" className="h-16 w-auto max-w-[160px] object-contain" style={{ filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.5))' }} />
+                        <img src={agencyLogo} alt="Logo" className="h-24 w-auto max-w-[220px] object-contain" style={{ filter: 'drop-shadow(0 2px 12px rgba(0,0,0,0.9)) drop-shadow(0 0 20px rgba(0,0,0,0.7))' }} />
                       </div>
                     )}
                   </>
@@ -1346,7 +1348,7 @@ export default function Home() {
                         </div>
                         {agencyLogo && (
                           <div className="absolute top-3 right-3">
-                            <img src={agencyLogo} alt="Logo" className="h-16 w-auto max-w-[160px] object-contain" style={{ filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.5))' }} />
+                            <img src={agencyLogo} alt="Logo" className="h-24 w-auto max-w-[220px] object-contain" style={{ filter: 'drop-shadow(0 2px 12px rgba(0,0,0,0.9)) drop-shadow(0 0 20px rgba(0,0,0,0.7))' }} />
                           </div>
                         )}
                       </>
