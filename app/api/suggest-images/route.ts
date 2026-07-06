@@ -260,8 +260,8 @@ export async function GET(req: NextRequest) {
 
   // ── 3. Buscar en paralelo en Pexels y Unsplash ───────────────────────────────
   const [pexelsPrimary, unsplashPrimary] = await Promise.allSettled([
-    fetchPexels(primaryQuery, 10),
-    fetchUnsplash(primaryQuery, 10),
+    fetchPexels(primaryQuery, 15),
+    fetchUnsplash(primaryQuery, 15),
   ])
 
   let externalImages = [
@@ -283,14 +283,14 @@ export async function GET(req: NextRequest) {
     externalImages = [...externalImages, ...fallback.filter(i => !existingIds.has(i.id))]
   }
 
-  // ── 4. Combinar: máx 6 personales + resto externas hasta 20 ─────────────────
+  // ── 4. Combinar: máx 6 personales + resto externas hasta 30 ─────────────────
   const allImages = [...personal6, ...externalImages]
 
   if (allImages.length === 0) {
     return NextResponse.json({ error: 'No se encontraron imágenes' }, { status: 500 })
   }
 
-  return NextResponse.json({ images: allImages.slice(0, 20) })
+  return NextResponse.json({ images: allImages.slice(0, 30) })
 }
 
 async function fetchPexels(query: string, perPage = 10) {

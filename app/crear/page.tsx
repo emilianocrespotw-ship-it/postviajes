@@ -291,6 +291,12 @@ export default function Home() {
   // Toast: Instagram no acepta text en Web Share API → avisamos al usuario que pegue el texto
   const [igToast, setIgToast] = useState(false)
 
+  // ── Modo Carousel ────────────────────────────────────────────────────────────
+  const [carouselMode, setCarouselMode] = useState(false)
+  const [carouselPhotos, setCarouselPhotos] = useState<Photo[]>([])  // fotos elegidas para el carousel
+  const [generatingCarousel, setGeneratingCarousel] = useState(false)
+  const [carouselProgress, setCarouselProgress] = useState({ current: 0, total: 0 })
+
   // ── Agencia / overlay ──────────────────────────────────────────────────────
   const [agencyLogo, setAgencyLogo] = useState<string | null>(null)
   const [agencyName, setAgencyName] = useState('')
@@ -363,7 +369,8 @@ export default function Home() {
   }
 
   // Genera imagen compuesta (foto + filtro + overlay) como dataURL
-  const generateOverlayCanvas = async (): Promise<string> => {
+  // photoOverride: permite generar para una foto específica (carousel)
+  const generateOverlayCanvas = async (photoOverride?: Photo): Promise<string> => {
     // Esperar que TODAS las fuentes del documento estén listas primero
     await document.fonts.ready
 
@@ -383,7 +390,8 @@ export default function Home() {
     } catch { /* Si falla, usa fallback */ }
 
     return new Promise((resolve, reject) => {
-      if (!selectedPhoto || !result) return reject('Sin datos')
+      const photo = photoOverride ?? selectedPhoto
+      if (!photo || !result) return reject('Sin datos')
 
       const SIZE_W = 1080
       const SIZE_H = 1350 // ratio 4:5 ideal para Instagram/Facebook
@@ -539,9 +547,38 @@ export default function Home() {
       }
       img.onerror = reject
       // Usar proxy para evitar CORS con fotos externas
-      const proxyUrl = `/api/download-image?url=${encodeURIComponent(selectedPhoto.url)}&name=tmp.jpg`
+      const proxyUrl = `/api/download-image?url=${encodeURIComponent(photo.url)}&name=tmp.jpg`
       img.src = proxyUrl
     })
+  }
+
+  // Genera todas las fotos del carousel y las descarga una por una
+  const generateCarousel = async () => {
+    if (!result || carouselPhotos.length === 0) return
+    setGeneratingCarousel(true)
+    setCarouselProgress({ current: 0, total: carouselPhotos.length })
+    const safeD = result.destination.replace(/[^a-z0-9]/gi, '-').toLowerCase()
+
+    for (let i = 0; i < carouselPhotos.length; i++) {
+      setCarouselProgress({ current: i + 1, total: carouselPhotos.length })
+      try {
+        const dataUrl = await generateOverlayCanvas(carouselPhotos[i])
+        // Trigger individual download
+        const a = document.createElement('a')
+        a.href = dataUrl
+        a.download = `postviajes-${safeD}-${String(i + 1).padStart(2, '0')}.jpg`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        // Pequeña pausa entre descargas para no saturar el browser
+        await new Promise(r => setTimeout(r, 300))
+      } catch (e) {
+        console.error('Error generando imagen carousel', i, e)
+      }
+    }
+
+    setGeneratingCarousel(false)
+    setCarouselProgress({ current: 0, total: 0 })
   }
 
   const goTo = (step: typeof uiStep, dir: typeof animDir = 'left') => {
@@ -892,6 +929,10 @@ export default function Home() {
     setPublishResult(null)
     setError(null)
     setErrorCode(null)
+    setCarouselMode(false)
+    setCarouselPhotos([])
+    setGeneratingCarousel(false)
+    setCarouselProgress({ current: 0, total: 0 })
   }
 
   const currentPhoto = photos[photoIdx]
@@ -1055,9 +1096,11 @@ export default function Home() {
         {uiStep === 'images' && result && (
           <div className={`${animClass}`}>
             {/* Info del paquete */}
-            <div className="flex items-start justify-between mb-5">
+            <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-[11px] font-black text-[#1A4A5C] tracking-widest mb-1">ELEGÍ UNA FOTO</p>
+                <p className="text-[11px] font-black text-[#1A4A5C] tracking-widest mb-1">
+                  {carouselMode ? 'ELEGÍ LAS FOTOS DEL CAROUSEL' : 'ELEGÍ UNA FOTO'}
+                </p>
                 <h2 className="text-2xl font-black leading-tight">{result.destination}</h2>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
                   {result.dates && <span className="text-gray-500 text-sm">📅 {result.dates}</span>}
@@ -1069,6 +1112,22 @@ export default function Home() {
               </button>
             </div>
 
+            {/* Toggle: Una foto / Carousel */}
+            <div className="flex rounded-xl overflow-hidden border border-gray-200 mb-4 bg-white">
+              <button
+                onClick={() => { setCarouselMode(false); setCarouselPhotos([]) }}
+                className={`flex-1 py-2.5 text-xs font-black transition ${!carouselMode ? 'bg-[#1A4A5C] text-white' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                📸 Una foto
+              </button>
+              <button
+                onClick={() => setCarouselMode(true)}
+                className={`flex-1 py-2.5 text-xs font-black transition ${carouselMode ? 'bg-[#E8782E] text-white' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                🎠 Carousel (hasta 10)
+              </button>
+            </div>
+
             {photos.length === 0 ? (
               /* Loading de fotos */
               <div className="rounded-3xl overflow-hidden bg-white flex items-center justify-center w-full" style={{ height: 'clamp(240px, 50vh, 460px)' }}>
@@ -1077,9 +1136,65 @@ export default function Home() {
                   <p className="text-sm">Buscando fotos de {result.destination}…</p>
                 </div>
               </div>
-            ) : (
+            ) : carouselMode ? (
+              /* ── MODO CAROUSEL: grilla 3 cols ── */
               <>
-                {/* Foto principal — altura fija, ancho 100%, object-cover */}
+                <p className="text-xs text-gray-400 mb-3 text-center">
+                  Tocá las fotos para seleccionarlas en orden · {carouselPhotos.length}/10 seleccionadas
+                </p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {photos.map((photo) => {
+                    const selIdx = carouselPhotos.findIndex(p => p.id === photo.id)
+                    const isSelected = selIdx !== -1
+                    const isDisabled = !isSelected && carouselPhotos.length >= 10
+                    return (
+                      <button
+                        key={photo.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setCarouselPhotos(prev => prev.filter(p => p.id !== photo.id))
+                          } else if (carouselPhotos.length < 10) {
+                            setCarouselPhotos(prev => [...prev, photo])
+                          }
+                        }}
+                        className="relative rounded-xl overflow-hidden aspect-square"
+                        style={{ opacity: isDisabled ? 0.4 : 1 }}
+                      >
+                        <img src={photo.thumbnail} alt="" className="w-full h-full object-cover" />
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-[#E8782E]/30 flex items-center justify-center">
+                            <div className="w-7 h-7 rounded-full bg-[#E8782E] flex items-center justify-center text-white font-black text-sm shadow-lg">
+                              {selIdx + 1}
+                            </div>
+                          </div>
+                        )}
+                        {!isSelected && !isDisabled && (
+                          <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition" />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (carouselPhotos.length > 0) {
+                      // Usar primera foto seleccionada como "principal" para style/overlay
+                      setSelectedPhoto(carouselPhotos[0])
+                      setCurrentStep(4)
+                      goTo('style', 'left')
+                    }
+                  }}
+                  disabled={carouselPhotos.length === 0}
+                  className="mt-4 w-full py-4 rounded-2xl font-black text-lg bg-[#E8782E] text-white disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shadow-xl"
+                >
+                  Continuar con {carouselPhotos.length} foto{carouselPhotos.length !== 1 ? 's' : ''} →
+                </button>
+              </>
+            ) : (
+              /* ── MODO UNA FOTO: comportamiento original ── */
+              <>
+                {/* Foto principal */}
                 <div
                   className="relative rounded-3xl overflow-hidden mb-3 w-full"
                   style={{ height: 'clamp(240px, 50vh, 460px)' }}
@@ -1092,11 +1207,7 @@ export default function Home() {
                     alt={result.destination}
                     className="w-full h-full object-cover animate-fade-left"
                   />
-
-                  {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-
-                  {/* Flechas */}
                   <button
                     onClick={() => setPhotoIdx(i => Math.max(0, i - 1))}
                     disabled={photoIdx === 0}
@@ -1111,14 +1222,10 @@ export default function Home() {
                   >
                     <ChevronRight className="w-5 h-5 text-white" />
                   </button>
-
-                  {/* Contador + fuente */}
                   <div className="absolute bottom-0 left-0 right-0 p-4 flex items-end justify-between">
-                    <div>
-                      <p className="text-gray-400 text-xs">{currentPhoto?.source}</p>
-                    </div>
+                    <p className="text-gray-400 text-xs">{currentPhoto?.source}</p>
                     <div className="flex gap-1.5">
-                      {photos.map((_, i) => (
+                      {photos.slice(0, 20).map((_, i) => (
                         <button
                           key={i}
                           onClick={() => setPhotoIdx(i)}
@@ -1449,6 +1556,40 @@ export default function Home() {
                   </div>
                 )}
 
+                {/* ── Carousel: descargar todas las imágenes ── */}
+                {carouselMode && carouselPhotos.length > 1 && (
+                  <div className="mt-4 bg-[#FFF7F0] border border-[#E8782E]/30 rounded-2xl p-4">
+                    <p className="text-xs font-black text-[#E8782E] mb-1">CAROUSEL · {carouselPhotos.length} imágenes</p>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Se generan todas con el mismo estilo y overlay. Se descargan una por una.
+                    </p>
+                    {generatingCarousel && (
+                      <div className="mb-3">
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                          <span>Generando imagen {carouselProgress.current} de {carouselProgress.total}…</span>
+                          <span>{Math.round((carouselProgress.current / carouselProgress.total) * 100)}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-[#E8782E] rounded-full transition-all duration-300"
+                            style={{ width: `${(carouselProgress.current / carouselProgress.total) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      onClick={generateCarousel}
+                      disabled={generatingCarousel}
+                      className="w-full py-3.5 rounded-xl font-black text-sm bg-[#E8782E] text-white disabled:opacity-60 transition flex items-center justify-center gap-2"
+                    >
+                      {generatingCarousel
+                        ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Generando…</>
+                        : <>⬇️ Descargar carousel ({carouselPhotos.length} imágenes)</>
+                      }
+                    </button>
+                  </div>
+                )}
+
                 {/* ── Botones de publicación social ── */}
                 <div className="mt-4 flex flex-col gap-3">
                   {/* Facebook */}
@@ -1631,7 +1772,6 @@ function PostTextCard({
 
         {/* ── Acciones ── */}
         <div className="flex mt-3">
-          {/* Copiar */}
           <button
             onClick={() => copy(text)}
             className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 transition justify-center"
@@ -1692,19 +1832,15 @@ function StepProgress({ activeStep }: { activeStep: number }) {
 }
 
 // ─── FlyerOverlay ─────────────────────────────────────────────────────────────
-// Componente para la capa visual sobre la foto
 function FlyerOverlay({ destination, price }: { destination: string; price: string }) {
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6">
-      {/* Logo en la esquina superior */}
       <div className="flex justify-start">
         <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1">
           <span className="font-black text-xs tracking-tighter" style={{ color: '#E8782E' }}>Post</span>
           <span className="font-black text-xs tracking-tighter" style={{ color: '#1A4A5C' }}>Viajes</span>
         </div>
       </div>
-
-      {/* Info de destino y precio abajo con gradiente para legibilidad */}
       <div className="bg-gradient-to-t from-black/90 via-black/40 to-transparent -mx-6 -mb-6 p-8">
         <h3 className="text-white font-black text-2xl uppercase leading-none mb-2 tracking-tight">
           {destination}
