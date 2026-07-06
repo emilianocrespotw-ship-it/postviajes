@@ -88,24 +88,46 @@ function toStr(val: unknown): string {
   return String(val)
 }
 
+// ─── Utilidad: copiar al portapapeles (iOS + Android safe) ───────────────────
+// iOS Safari necesita position:fixed y setSelectionRange; execCommand es síncrono
+// y más confiable dentro de un gesto de usuario que clipboard.writeText
+async function writeToClipboard(text: string): Promise<boolean> {
+  // Método 1: execCommand (síncrono, funciona en iOS con setSelectionRange)
+  try {
+    const el = document.createElement('textarea')
+    el.value = text
+    el.setAttribute('readonly', '')
+    el.style.cssText = 'position:fixed;left:-9999px;top:0;font-size:16px;opacity:0;'
+    document.body.appendChild(el)
+    const isIOS = /ipad|iphone/i.test(navigator.userAgent)
+    if (isIOS) {
+      el.setSelectionRange(0, 999999)
+    } else {
+      el.select()
+    }
+    const ok = document.execCommand('copy')
+    document.body.removeChild(el)
+    if (ok) return true
+  } catch { /* fallback */ }
+  // Método 2: Clipboard API moderna
+  if (navigator?.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch { /* ignore */ }
+  }
+  return false
+}
+
 // ─── Hook: clipboard ─────────────────────────────────────────────────────────
 function useCopy() {
   const [copied, setCopied] = useState(false)
   const copy = async (text: string) => {
-    try {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text)
-      } else {
-        const el = document.createElement('textarea')
-        el.value = text
-        document.body.appendChild(el)
-        el.select()
-        document.execCommand('copy')
-        document.body.removeChild(el)
-      }
+    const ok = await writeToClipboard(text)
+    if (ok) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch { /* ignore */ }
+    }
   }
   return { copied, copy }
 }
@@ -264,6 +286,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [socialAction, setSocialAction] = useState<'facebook' | 'instagram' | 'whatsapp' | null>(null)
+  // Toast: Instagram no acepta text en Web Share API → avisamos al usuario que pegue el texto
+  const [igToast, setIgToast] = useState(false)
 
   // ── Agencia / overlay ──────────────────────────────────────────────────────
   const [agencyLogo, setAgencyLogo] = useState<string | null>(null)
@@ -776,18 +800,27 @@ export default function Home() {
       ? (editedFB || result.textFacebook)
       : (editedIG || result.textInstagram)
 
-    // Copy text to clipboard
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(textToCopy).catch(() => {})
-    }
+    // Copiar texto al portapapeles ANTES de cualquier await (dentro del gesto de usuario)
+    // Instagram ignora el campo "text" del Web Share API, así que el clipboard es la única vía
+    await writeToClipboard(textToCopy)
 
     if (isMobile && typeof navigator !== 'undefined' && navigator.share) {
       // En mobile: usar Web Share API con blob pre-computado (instantáneo para iOS)
+      // ⚠️ Instagram ignora el campo "text" → mostramos aviso para que el usuario pegue
+      if (network === 'instagram') {
+        setIgToast(true)
+        setTimeout(() => setIgToast(false), 10000)
+      }
       try {
         const blob = await getBlob()
         const file = new File([blob], `postviajes-${safeD}.jpg`, { type: 'image/jpeg' })
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], text: textToCopy })
+          // Para Instagram pasamos text vacío (lo ignora de todas formas)
+          // Para Facebook sí lo incluimos
+          await navigator.share({
+            files: [file],
+            ...(network === 'facebook' ? { text: textToCopy } : {}),
+          })
         } else {
           await navigator.share({ text: textToCopy })
         }
@@ -1376,6 +1409,20 @@ export default function Home() {
                   onChangeFacebook={setEditedFB}
                   onChangeInstagram={setEditedIG}
                 />
+
+                {/* Toast: Instagram no acepta text en Web Share → pegá el texto vos */}
+                {igToast && (
+                  <div className="mt-4 flex items-start gap-3 bg-pink-50 border border-pink-200 rounded-2xl p-4 animate-fade-up">
+                    <span className="text-xl">📋</span>
+                    <div>
+                      <p className="text-sm font-black text-pink-700">Texto copiado al portapapeles</p>
+                      <p className="text-xs text-pink-500 mt-0.5 leading-snug">
+                        Instagram no acepta texto automático. Una vez que subas la foto,<br/>
+                        <strong>pegá el texto en el pie de foto</strong> con mantener presionado → Pegar.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* ── Botones de publicación social ── */}
                 <div className="mt-4 flex flex-col gap-3">
