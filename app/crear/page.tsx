@@ -442,9 +442,11 @@ export default function Home() {
           const totalH = (destLines * lineH)
             + (hasDates ? DATE_FONT + 20 : 0)
             + (hasPrice ? PRICE_FONT + BADGE_PAD_Y * 2 + 24 : 0)
-          // Anclado abajo (igual que el preview del UI)
-          const PADDING_BOTTOM_PX = 100
-          let curY = SIZE_H - PADDING_BOTTOM_PX - totalH
+          // Anclado dentro del área 1:1 que muestra Instagram en el feed
+          // Para 1080×1350: el cuadrado centrado va de y=135 a y=1215
+          const SQUARE_BOTTOM = (SIZE_H + SIZE_W) / 2   // 1215
+          const PADDING_BOTTOM_PX = 70
+          let curY = SQUARE_BOTTOM - PADDING_BOTTOM_PX - totalH
 
           // Destino
           ctx.fillStyle = 'white'
@@ -1257,8 +1259,8 @@ export default function Home() {
                   <>
                     {/* Gradiente inferior */}
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 40%, transparent 70%)' }} />
-                    {/* Texto anclado abajo — igual que preview step y canvas */}
-                    <div className="absolute inset-0 flex flex-col justify-end items-center text-white pb-5 px-4">
+                    {/* Texto dentro del área 1:1 visible en el feed de Instagram */}
+                    <div className="absolute inset-x-0 flex flex-col items-center text-white px-4" style={{ bottom: '15%' }}>
                       <p className="uppercase leading-tight text-center w-full" style={{ fontFamily: 'var(--font-unbounded), Unbounded, sans-serif', fontSize: 'clamp(20px, 6vw, 40px)', fontWeight: 900, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
                         {result.destination}
                       </p>
@@ -1378,7 +1380,7 @@ export default function Home() {
                     {overlayEnabled && (
                       <>
                         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 40%, transparent 70%)' }} />
-                        <div className="absolute inset-0 flex flex-col justify-end items-center text-white pb-5 px-4">
+                        <div className="absolute inset-x-0 flex flex-col items-center text-white px-4" style={{ bottom: '15%' }}>
                           <p className="uppercase leading-tight text-center w-full" style={{ fontFamily: 'var(--font-unbounded), Unbounded, sans-serif', fontSize: 'clamp(20px, 6vw, 40px)', fontWeight: 900, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
                             {result.destination}
                           </p>
