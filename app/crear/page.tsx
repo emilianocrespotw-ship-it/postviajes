@@ -297,6 +297,10 @@ export default function Home() {
   const [generatingCarousel, setGeneratingCarousel] = useState(false)
   const [carouselProgress, setCarouselProgress] = useState({ current: 0, total: 0 })
 
+  // BUG-07: estado de carga/error para suggest-images
+  const [photosLoading, setPhotosLoading] = useState(false)
+  const [photosError, setPhotosError] = useState(false)
+
   // ── Agencia / overlay ──────────────────────────────────────────────────────
   const [agencyLogo, setAgencyLogo] = useState<string | null>(null)
   const [agencyName, setAgencyName] = useState('')
@@ -546,39 +550,55 @@ export default function Home() {
         }
       }
       img.onerror = reject
-      // Usar proxy para evitar CORS con fotos externas
-      const proxyUrl = `/api/download-image?url=${encodeURIComponent(photo.url)}&name=tmp.jpg`
+      // mode=proxy → Content-Disposition: inline (Safari rechaza attachment en canvas)
+      const proxyUrl = `/api/download-image?url=${encodeURIComponent(photo.url)}&name=tmp.jpg&mode=proxy`
       img.src = proxyUrl
     })
   }
 
+  // Ref para cancelar el carousel si el usuario hace reset mientras genera
+  const carouselCancelledRef = useRef(false)
+
   // Genera todas las fotos del carousel y las descarga una por una
   const generateCarousel = async () => {
     if (!result || carouselPhotos.length === 0) return
+
+    // BUG-01: snapshot de valores al inicio para evitar stale closure si hay re-renders
+    const snapResult   = result
+    const snapPhotos   = [...carouselPhotos]
+    const safeD        = snapResult.destination.replace(/[^a-z0-9]/gi, '-').toLowerCase()
+
+    carouselCancelledRef.current = false
     setGeneratingCarousel(true)
-    setCarouselProgress({ current: 0, total: carouselPhotos.length })
-    const safeD = result.destination.replace(/[^a-z0-9]/gi, '-').toLowerCase()
+    setCarouselProgress({ current: 0, total: snapPhotos.length })
 
-    for (let i = 0; i < carouselPhotos.length; i++) {
-      setCarouselProgress({ current: i + 1, total: carouselPhotos.length })
-      try {
-        const dataUrl = await generateOverlayCanvas(carouselPhotos[i])
-        // Trigger individual download
-        const a = document.createElement('a')
-        a.href = dataUrl
-        a.download = `postviajes-${safeD}-${String(i + 1).padStart(2, '0')}.jpg`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        // Pequeña pausa entre descargas para no saturar el browser
-        await new Promise(r => setTimeout(r, 300))
-      } catch (e) {
-        console.error('Error generando imagen carousel', i, e)
+    // BUG-05: try/finally garantiza que el spinner nunca quede trabado
+    try {
+      for (let i = 0; i < snapPhotos.length; i++) {
+        // Abortar si el usuario hizo reset durante la generación
+        if (carouselCancelledRef.current) break
+
+        setCarouselProgress({ current: i + 1, total: snapPhotos.length })
+        try {
+          const dataUrl = await generateOverlayCanvas(snapPhotos[i])
+          if (carouselCancelledRef.current) break
+          const a = document.createElement('a')
+          a.href = dataUrl
+          a.download = `postviajes-${safeD}-${String(i + 1).padStart(2, '0')}.jpg`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          // Pausa entre descargas para no saturar el browser
+          await new Promise(r => setTimeout(r, 300))
+        } catch (e) {
+          console.error('Error generando imagen carousel', i, e)
+        }
       }
+    } finally {
+      // BUG-05: siempre limpia el estado, incluso si hay un error inesperado
+      setGeneratingCarousel(false)
+      setCarouselProgress({ current: 0, total: 0 })
     }
-
-    setGeneratingCarousel(false)
-    setCarouselProgress({ current: 0, total: 0 })
   }
 
   const goTo = (step: typeof uiStep, dir: typeof animDir = 'left') => {
@@ -645,10 +665,14 @@ export default function Home() {
   useEffect(() => {
     if (!selectedPhoto || !result || !overlayEnabled) {
       precomputedBlobRef.current = null
+      precomputedKeyRef.current = ''  // BUG-02: limpiar key para forzar re-cómputo al volver
+      return
+    }
+    // BUG-02: también limpiar key si estamos fuera de los steps relevantes
+    if (uiStep !== 'overlay' && uiStep !== 'preview') {
       precomputedKeyRef.current = ''
       return
     }
-    if (uiStep !== 'overlay' && uiStep !== 'preview') return
 
     const key = `${selectedPhoto.url}|${selectedStyle.id}|${agencyLogo || ''}|${overlayEnabled}`
     if (precomputedKeyRef.current === key) return  // ya calculado
@@ -712,11 +736,18 @@ export default function Home() {
       setCurrentStep(3)
       setPhotoIdx(0)
 
+      // BUG-07: trackear loading/error de fotos para mostrar feedback al usuario
+      setPhotosLoading(true)
+      setPhotosError(false)
       const params = new URLSearchParams({ q: normalized.searchQuery, destination: normalized.destination })
       fetch(`/api/suggest-images?${params}`)
-        .then(r => r.json())
-        .then(d => setPhotos(Array.isArray(d.images) ? d.images : []))
-        .catch(() => {})
+        .then(r => { if (!r.ok) throw new Error('suggest-images failed'); return r.json() })
+        .then(d => {
+          if (!Array.isArray(d.images) || d.images.length === 0) throw new Error('No images')
+          setPhotos(d.images)
+        })
+        .catch(() => setPhotosError(true))
+        .finally(() => setPhotosLoading(false))
 
       goTo('images', 'left')
     } catch (err: any) {
@@ -933,6 +964,14 @@ export default function Home() {
     setCarouselPhotos([])
     setGeneratingCarousel(false)
     setCarouselProgress({ current: 0, total: 0 })
+    // BUG-01/05: cancelar generación en curso
+    carouselCancelledRef.current = true
+    // BUG-09: limpiar estado UI residual
+    setActiveTab('instagram')
+    setSocialAction(null)
+    setIgToast(false)
+    setPhotosLoading(false)
+    setPhotosError(false)
   }
 
   const currentPhoto = photos[photoIdx]
@@ -1128,7 +1167,30 @@ export default function Home() {
               </button>
             </div>
 
-            {photos.length === 0 ? (
+            {/* BUG-07: error al cargar fotos */}
+            {photosError && (
+              <div className="rounded-3xl bg-red-50 border border-red-200 p-6 text-center mb-4">
+                <p className="text-sm text-red-600 font-bold mb-2">No se pudieron cargar las fotos</p>
+                <button
+                  onClick={() => {
+                    if (!result) return
+                    setPhotosError(false)
+                    setPhotosLoading(true)
+                    const params = new URLSearchParams({ q: result.searchQuery, destination: result.destination })
+                    fetch(`/api/suggest-images?${params}`)
+                      .then(r => { if (!r.ok) throw new Error(); return r.json() })
+                      .then(d => { if (Array.isArray(d.images) && d.images.length > 0) setPhotos(d.images); else throw new Error() })
+                      .catch(() => setPhotosError(true))
+                      .finally(() => setPhotosLoading(false))
+                  }}
+                  className="text-xs font-bold text-red-500 underline"
+                >
+                  Reintentar
+                </button>
+              </div>
+            )}
+
+            {photos.length === 0 && !photosError ? (
               /* Loading de fotos */
               <div className="rounded-3xl overflow-hidden bg-white flex items-center justify-center w-full" style={{ height: 'clamp(240px, 50vh, 460px)' }}>
                 <div className="text-center text-gray-400">
@@ -1224,8 +1286,8 @@ export default function Home() {
                   </button>
                   <div className="absolute bottom-0 left-0 right-0 p-4 flex items-end justify-between">
                     <p className="text-gray-400 text-xs">{currentPhoto?.source}</p>
-                    <div className="flex gap-1.5">
-                      {photos.slice(0, 20).map((_, i) => (
+                    <div className="flex gap-1.5 flex-wrap justify-end max-w-[140px]">
+                      {photos.map((_, i) => (
                         <button
                           key={i}
                           onClick={() => setPhotoIdx(i)}
@@ -1557,7 +1619,7 @@ export default function Home() {
                 )}
 
                 {/* ── Carousel: descargar todas las imágenes ── */}
-                {carouselMode && carouselPhotos.length > 1 && (
+                {carouselMode && carouselPhotos.length >= 1 && (
                   <div className="mt-4 bg-[#FFF7F0] border border-[#E8782E]/30 rounded-2xl p-4">
                     <p className="text-xs font-black text-[#E8782E] mb-1">CAROUSEL · {carouselPhotos.length} imágenes</p>
                     <p className="text-xs text-gray-500 mb-3">
@@ -1695,7 +1757,6 @@ function PostTextCard({
   onChangeFacebook,
   onChangeInstagram,
   onChangeWhatsapp,
-  imageUrl,
 }: {
   textFacebook: string
   textInstagram: string
@@ -1705,7 +1766,6 @@ function PostTextCard({
   onChangeFacebook?: (v: string) => void
   onChangeInstagram?: (v: string) => void
   onChangeWhatsapp?: (v: string) => void
-  imageUrl?: string
 }) {
   const { copied, copy } = useCopy()
   const isIG = activeTab === 'instagram'
@@ -1831,26 +1891,5 @@ function StepProgress({ activeStep }: { activeStep: number }) {
   )
 }
 
-// ─── FlyerOverlay ─────────────────────────────────────────────────────────────
-function FlyerOverlay({ destination, price }: { destination: string; price: string }) {
-  return (
-    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6">
-      <div className="flex justify-start">
-        <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1">
-          <span className="font-black text-xs tracking-tighter" style={{ color: '#E8782E' }}>Post</span>
-          <span className="font-black text-xs tracking-tighter" style={{ color: '#1A4A5C' }}>Viajes</span>
-        </div>
-      </div>
-      <div className="bg-gradient-to-t from-black/90 via-black/40 to-transparent -mx-6 -mb-6 p-8">
-        <h3 className="text-white font-black text-2xl uppercase leading-none mb-2 tracking-tight">
-          {destination}
-        </h3>
-        <div className="inline-block bg-[#E8782E] px-3 py-1 rounded-lg">
-          <p className="text-white font-black text-lg leading-none">
-            {price}
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
+// BUG-18: FlyerOverlay removido — era código muerto (nunca se usaba en el JSX)
+digo muerto (nunca se usaba en el JSX)

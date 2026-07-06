@@ -22,6 +22,9 @@ async function fetchPersonalPhotos(destination: string): Promise<any[]> {
   // Split destination into keywords for broader matching
   const keywords = destLower.split(/[\s,]+/).filter(k => k.length > 2)
 
+  // BUG-15: keywords vacío → .or('') genera query malformado en Supabase
+  if (keywords.length === 0) return []
+
   try {
     // Search by destination name (case insensitive) or country or tags
     const { data, error } = await supabaseAdmin
@@ -326,4 +329,6 @@ async function fetchUnsplash(query: string, perPage = 10) {
     photographerUrl: p.user.links.html,
     source: 'Unsplash',
   }))
+}
+)
 }
