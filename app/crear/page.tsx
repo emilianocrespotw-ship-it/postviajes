@@ -400,8 +400,12 @@ export default function Home() {
           const PADDING = 60
           const MAX_TEXT_W = SIZE_W - PADDING * 2
 
-          // Overlay mínimo
-          ctx.fillStyle = 'rgba(0,0,0,0.15)'
+          // Gradiente inferior (igual que el preview del UI)
+          const grad = ctx.createLinearGradient(0, SIZE_H * 0.3, 0, SIZE_H)
+          grad.addColorStop(0, 'rgba(0,0,0,0)')
+          grad.addColorStop(0.4, 'rgba(0,0,0,0.45)')
+          grad.addColorStop(1, 'rgba(0,0,0,0.88)')
+          ctx.fillStyle = grad
           ctx.fillRect(0, 0, SIZE_W, SIZE_H)
 
           // Destino — auto-ajuste de fuente para que entre en el ancho
@@ -438,8 +442,9 @@ export default function Home() {
           const totalH = (destLines * lineH)
             + (hasDates ? DATE_FONT + 20 : 0)
             + (hasPrice ? PRICE_FONT + BADGE_PAD_Y * 2 + 24 : 0)
-          // Centrado vertical
-          let curY = SIZE_H / 2 - totalH / 2
+          // Anclado abajo (igual que el preview del UI)
+          const PADDING_BOTTOM_PX = 100
+          let curY = SIZE_H - PADDING_BOTTOM_PX - totalH
 
           // Destino
           ctx.fillStyle = 'white'
@@ -1250,20 +1255,20 @@ export default function Home() {
                 />
                 {overlayEnabled && (
                   <>
-                    {/* Overlay mínimo */}
-                    <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.15)' }} />
-                    {/* Texto centrado verticalmente */}
-                    <div className="absolute inset-0 flex flex-col justify-center items-center text-white px-4">
-                      <p className="uppercase leading-tight text-center w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(18px, 5.5vw, 38px)', fontWeight: 900, textShadow: '0 2px 12px rgba(0,0,0,0.5)' }}>
+                    {/* Gradiente inferior */}
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 40%, transparent 70%)' }} />
+                    {/* Texto anclado abajo — igual que preview step y canvas */}
+                    <div className="absolute inset-0 flex flex-col justify-end items-center text-white pb-5 px-4">
+                      <p className="uppercase leading-tight text-center w-full" style={{ fontFamily: 'var(--font-unbounded), Unbounded, sans-serif', fontSize: 'clamp(20px, 6vw, 40px)', fontWeight: 900, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
                         {result.destination}
                       </p>
                       {result.dates?.trim() && (
-                        <p className="mt-1 uppercase opacity-80 text-center" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(7px, 1.8vw, 10px)', fontWeight: 700, letterSpacing: '0.1em' }}>
+                        <p className="mt-1 uppercase opacity-80 text-center" style={{ fontFamily: 'var(--font-unbounded), Unbounded, sans-serif', fontSize: 'clamp(11px, 3.2vw, 18px)', fontWeight: 700, letterSpacing: '0.1em' }}>
                           {formatSalida(result.dates)}
                         </p>
                       )}
                       {result.price?.trim() && (
-                        <p className="mt-2 uppercase text-center opacity-90" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(9px, 2.2vw, 13px)', fontWeight: 900 }}>
+                        <p className="mt-2 uppercase text-center opacity-90" style={{ fontFamily: 'var(--font-unbounded), Unbounded, sans-serif', fontSize: 'clamp(13px, 3.8vw, 22px)', fontWeight: 900 }}>
                           {result.price}
                         </p>
                       )}
@@ -1374,16 +1379,16 @@ export default function Home() {
                       <>
                         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 40%, transparent 70%)' }} />
                         <div className="absolute inset-0 flex flex-col justify-end items-center text-white pb-5 px-4">
-                          <p className="uppercase leading-tight text-center w-full" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(20px, 6vw, 40px)', fontWeight: 900, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
+                          <p className="uppercase leading-tight text-center w-full" style={{ fontFamily: 'var(--font-unbounded), Unbounded, sans-serif', fontSize: 'clamp(20px, 6vw, 40px)', fontWeight: 900, textShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
                             {result.destination}
                           </p>
                           {result.dates?.trim() && (
-                            <p className="mt-1 uppercase opacity-80 text-center" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(7px, 1.8vw, 10px)', fontWeight: 700, letterSpacing: '0.1em' }}>
+                            <p className="mt-1 uppercase opacity-80 text-center" style={{ fontFamily: 'var(--font-unbounded), Unbounded, sans-serif', fontSize: 'clamp(11px, 3.2vw, 18px)', fontWeight: 700, letterSpacing: '0.1em' }}>
                               {formatSalida(result.dates)}
                             </p>
                           )}
                           {result.price?.trim() && (
-                            <p className="mt-2 uppercase text-center opacity-90" style={{ fontFamily: 'var(--font-unbounded), sans-serif', fontSize: 'clamp(9px, 2.2vw, 13px)', fontWeight: 900 }}>
+                            <p className="mt-2 uppercase text-center opacity-90" style={{ fontFamily: 'var(--font-unbounded), Unbounded, sans-serif', fontSize: 'clamp(13px, 3.8vw, 22px)', fontWeight: 900 }}>
                               {result.price}
                             </p>
                           )}
