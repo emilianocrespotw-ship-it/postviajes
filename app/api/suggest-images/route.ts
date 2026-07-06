@@ -330,5 +330,3 @@ async function fetchUnsplash(query: string, perPage = 10) {
     source: 'Unsplash',
   }))
 }
-)
-}
