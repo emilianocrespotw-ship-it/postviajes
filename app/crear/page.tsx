@@ -42,6 +42,7 @@ interface FlyerResult {
   includes: string[]
   textFacebook: string
   textInstagram: string
+  textWhatsapp: string
   searchQuery: string
 }
 
@@ -277,9 +278,10 @@ export default function Home() {
   const [photoIdx, setPhotoIdx] = useState(0)
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
   const [selectedStyle, setSelectedStyle] = useState(STYLES[0])
-  const [activeTab, setActiveTab] = useState<'instagram' | 'facebook'>('instagram')
+  const [activeTab, setActiveTab] = useState<'instagram' | 'facebook' | 'whatsapp'>('instagram')
   const [editedFB, setEditedFB] = useState('')
   const [editedIG, setEditedIG] = useState('')
+  const [editedWA, setEditedWA] = useState('')
   const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState(false)
   const [publishResult, setPublishResult] = useState<{ pageName?: string } | null>(null)
@@ -662,12 +664,14 @@ export default function Home() {
         includes:      Array.isArray(data.includes) ? data.includes.map(toStr) : [],
         textFacebook:  toStr(data.textFacebook),
         textInstagram: toStr(data.textInstagram),
+        textWhatsapp:  toStr(data.textWhatsapp),
         searchQuery:   toStr(data.searchQuery) || toStr(data.destination),
       }
 
       setResult(normalized)
       setEditedFB(normalized.textFacebook)
       setEditedIG(normalized.textInstagram)
+      setEditedWA(normalized.textWhatsapp)
       setCurrentStep(3)
       setPhotoIdx(0)
 
@@ -766,7 +770,11 @@ export default function Home() {
     }
 
     if (network === 'whatsapp') {
-      const text = editedIG || result.textInstagram
+      // Usar texto específico de WhatsApp (más corto, con *negrita*, sin hashtags)
+      const text = editedWA || result.textWhatsapp || editedIG || result.textInstagram
+
+      // Copiar al portapapeles antes de cualquier await (dentro del gesto del usuario)
+      await writeToClipboard(text)
 
       if (isMobile && typeof navigator !== 'undefined' && navigator.share) {
         try {
@@ -778,13 +786,11 @@ export default function Home() {
             await navigator.share({ text })
           }
         } catch {
-          if (navigator?.clipboard?.writeText) {
-            await navigator.clipboard.writeText(text).catch(() => {})
-          }
-          window.open('https://wa.me/', '_blank', 'noopener')
+          // Fallback: abrir WA con texto pre-llenado
+          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
         }
       } else {
-        // Desktop: descargar + abrir WhatsApp
+        // Desktop: descargar imagen + abrir WhatsApp con texto pre-llenado
         try {
           const blob = await getBlob()
           const blobUrl = URL.createObjectURL(blob)
@@ -796,11 +802,9 @@ export default function Home() {
           document.body.removeChild(a)
           setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
         } catch { /* ignora */ }
-        if (navigator?.clipboard?.writeText) {
-          await navigator.clipboard.writeText(text).catch(() => {})
-        }
+        // Abrir WhatsApp con el texto ya cargado (usuario solo adjunta la imagen)
         setTimeout(() => {
-          window.open('https://wa.me/', '_blank', 'noopener')
+          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener')
         }, 500)
       }
       setSocialAction(null)
@@ -879,6 +883,7 @@ export default function Home() {
     setResult(null)
     setEditedFB('')
     setEditedIG('')
+    setEditedWA('')
     setPhotos([])
     setPhotoIdx(0)
     setSelectedPhoto(null)
@@ -1143,10 +1148,12 @@ export default function Home() {
                 <PostTextCard
                   textFacebook={editedFB}
                   textInstagram={editedIG}
+                  textWhatsapp={editedWA}
                   activeTab={activeTab}
                   setActiveTab={setActiveTab}
                   onChangeFacebook={setEditedFB}
                   onChangeInstagram={setEditedIG}
+                  onChangeWhatsapp={setEditedWA}
                 />
               </div>
             )}
@@ -1228,10 +1235,12 @@ export default function Home() {
                 <PostTextCard
                   textFacebook={editedFB}
                   textInstagram={editedIG}
+                  textWhatsapp={editedWA}
                   activeTab={activeTab}
                   setActiveTab={setActiveTab}
                   onChangeFacebook={setEditedFB}
                   onChangeInstagram={setEditedIG}
+                  onChangeWhatsapp={setEditedWA}
                 />
               </div>
             )}
@@ -1416,10 +1425,12 @@ export default function Home() {
                 <PostTextCard
                   textFacebook={editedFB}
                   textInstagram={editedIG}
+                  textWhatsapp={editedWA}
                   activeTab={activeTab}
                   setActiveTab={setActiveTab}
                   onChangeFacebook={setEditedFB}
                   onChangeInstagram={setEditedIG}
+                  onChangeWhatsapp={setEditedWA}
                 />
 
                 {/* Toast: Instagram no acepta text en Web Share → pegá el texto vos */}
@@ -1537,48 +1548,30 @@ export default function Home() {
 function PostTextCard({
   textFacebook,
   textInstagram,
+  textWhatsapp,
   activeTab,
   setActiveTab,
   onChangeFacebook,
   onChangeInstagram,
+  onChangeWhatsapp,
   imageUrl,
 }: {
   textFacebook: string
   textInstagram: string
-  activeTab: 'instagram' | 'facebook'
-  setActiveTab: (t: 'instagram' | 'facebook') => void
+  textWhatsapp?: string
+  activeTab: 'instagram' | 'facebook' | 'whatsapp'
+  setActiveTab: (t: 'instagram' | 'facebook' | 'whatsapp') => void
   onChangeFacebook?: (v: string) => void
   onChangeInstagram?: (v: string) => void
+  onChangeWhatsapp?: (v: string) => void
   imageUrl?: string
 }) {
   const { copied, copy } = useCopy()
   const isIG = activeTab === 'instagram'
-  const text = isIG ? textInstagram : textFacebook
-  const onChange = isIG ? onChangeInstagram : onChangeFacebook
-
-  const shareWhatsApp = async () => {
-    if (!text) return
-    // Intentamos Web Share API (funciona en móvil con imagen)
-    if (imageUrl && typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        const res = await fetch(`/api/download-image?url=${encodeURIComponent(imageUrl)}&name=postviajes.jpg`)
-        const blob = await res.blob()
-        const file = new File([blob], 'postviajes.jpg', { type: 'image/jpeg' })
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], text })
-          return
-        }
-        // Share sin imagen pero con texto
-        await navigator.share({ text })
-        return
-      } catch { /* fallback abajo */ }
-    }
-    // Fallback: wa.me sin texto (igual abre la app) + texto ya copiado al portapapeles
-    if (navigator?.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text).catch(() => {})
-    }
-    window.open('https://wa.me/', '_blank', 'noopener')
-  }
+  const isFB = activeTab === 'facebook'
+  const isWA = activeTab === 'whatsapp'
+  const text = isIG ? textInstagram : isFB ? textFacebook : (textWhatsapp || '')
+  const onChange = isIG ? onChangeInstagram : isFB ? onChangeFacebook : onChangeWhatsapp
 
   return (
     <div className="rounded-3xl overflow-hidden bg-white border border-gray-200">
@@ -1587,25 +1580,36 @@ function PostTextCard({
       <div className="flex">
         <button
           onClick={() => setActiveTab('instagram')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-bold transition border-b-2 ${
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold transition border-b-2 ${
             isIG
               ? 'border-pink-500 text-[#111827] bg-gradient-to-b from-pink-500/10 to-transparent'
               : 'border-transparent text-gray-400 hover:text-gray-500'
           }`}
         >
-          <IgIcon className={`w-4 h-4 ${isIG ? 'text-pink-400' : ''}`} />
+          <IgIcon className={`w-3.5 h-3.5 ${isIG ? 'text-pink-400' : ''}`} />
           Instagram
         </button>
         <button
           onClick={() => setActiveTab('facebook')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-bold transition border-b-2 ${
-            !isIG
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold transition border-b-2 ${
+            isFB
               ? 'border-blue-500 text-[#111827] bg-blue-500/5'
               : 'border-transparent text-gray-400 hover:text-gray-500'
           }`}
         >
-          <FbIcon className={`w-4 h-4 ${!isIG ? 'text-blue-400' : ''}`} />
+          <FbIcon className={`w-3.5 h-3.5 ${isFB ? 'text-blue-400' : ''}`} />
           Facebook
+        </button>
+        <button
+          onClick={() => setActiveTab('whatsapp')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold transition border-b-2 ${
+            isWA
+              ? 'border-green-500 text-[#111827] bg-green-500/5'
+              : 'border-transparent text-gray-400 hover:text-gray-500'
+          }`}
+        >
+          <WaIcon className={`w-3.5 h-3.5 ${isWA ? 'text-green-500' : ''}`} />
+          WhatsApp
         </button>
       </div>
 

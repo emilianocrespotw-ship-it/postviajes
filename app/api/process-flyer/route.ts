@@ -158,33 +158,34 @@ IMPORTANTE:
 
     const systemPrompt = isPromocion
       ? `Sos un community manager rioplatense de una agencia de viajes.
-Respondé SOLO con JSON válido: {"facebook": "...", "instagram": "..."}
+Respondé SOLO con JSON válido: {"facebook": "...", "instagram": "...", "whatsapp": "..."}
 
-⚠️ MUY IMPORTANTE — SALTOS DE LÍNEA:
-Cada línea del post debe estar separada con \\n dentro del string JSON.
-Ejemplo: {"facebook": "¡El Caribe te llama! 🌴\\n✨ Playas increíbles, sol y diversión\\n🌟 Paquetes a medida para vos\\nConsultanos sin compromiso 👉\\n📲 WhatsApp"}
+⚠️ SALTOS DE LÍNEA: separar cada línea con \\n dentro del string JSON.
 
-Este es un flyer de PROMOCIÓN. Generá un post entusiasta usando esta estructura (\\n entre cada línea):
+FACEBOOK e INSTAGRAM — post entusiasta:
 [Frase llamativa sobre el destino o la promoción]
 [2-3 líneas destacando qué hace especial este destino]
 [Call to action para consultar / reservar]
 📲 WhatsApp
 
-REGLAS:
-- Usá SIEMPRE emojis Unicode reales: ✈️ 🏖️ 🌴 🌟 🔥 💫 🎉 👉 📲 🗺️
+WHATSAPP — mensaje directo para enviar a clientes por chat (máx 80 palabras):
+*[Destino en mayúsculas]*
+[1-2 líneas cortas del beneficio principal]
+¿Te interesa? Consultame y te paso todos los detalles 👇
+
+REGLAS generales:
+- Usá emojis Unicode reales: ✈️ 🏖️ 🌴 🌟 🔥 💫 🎉 👉 📲 🗺️
 - NUNCA menciones precios ni fechas de salida
-- Estilo: rioplatense, entusiasta, máximo 150 palabras por red.`
+- Estilo rioplatense, entusiasta.
+- Facebook/Instagram: máx 150 palabras. WhatsApp: máx 80 palabras, sin hashtags.`
       : `Sos un community manager rioplatense de una agencia de viajes.
-Respondé SOLO con JSON válido: {"facebook": "...", "instagram": "..."}
+Respondé SOLO con JSON válido: {"facebook": "...", "instagram": "...", "whatsapp": "..."}
 
-⚠️ MUY IMPORTANTE — SALTOS DE LÍNEA:
-Cada línea del post debe estar separada con \\n dentro del string JSON.
-Ejemplo de formato correcto:
-{"facebook": "¡Jamaica te espera! 🌴\\n✈️ SALIDA: 06/12/2026\\n✅ INCLUYE:\\n✈️ Vuelos desde Buenos Aires\\n🏨 Hotel con desayuno\\n💰 USD 2340 por persona\\nReservá ahora 👉\\n📲 WhatsApp"}
+⚠️ SALTOS DE LÍNEA: separar cada línea con \\n dentro del string JSON.
 
-Generá el texto siguiendo esta estructura (una línea por ítem, con \\n entre cada una):
+FACEBOOK e INSTAGRAM — estructura (\\n entre cada línea):
 [Frase inicial vendedora con emoji del destino]
-✈️ SALIDA: [Fecha si existe, sino omitir esta línea]
+✈️ SALIDA: [Fecha si existe, sino omitir]
 ✅ INCLUYE:
 ✈️ Vuelos desde Buenos Aires
 🏨 Hotel: [Nombre] con [Régimen]
@@ -194,11 +195,16 @@ ${flyer.price ? '💰 VALOR: [Precio] por persona en base doble' : ''}
 [Frase de cierre]
 📲 WhatsApp
 
-REGLAS:
-- Usá SIEMPRE emojis Unicode reales: ✈️ 🏨 🌴 🏖️ 🗓️ 💰 🎉 🌟 ⭐ 🍳 🚌 🛡️ 📍 💫 🔥 👉 📲
+WHATSAPP — mensaje directo para chat (máx 80 palabras, sin hashtags):
+*[Destino en mayúsculas]* [emoji destino]
+${flyer.dates ? '🗓️ Salida: [Fecha]\\n' : ''}${flyer.price ? '💰 *[Precio]* por persona\\n' : ''}✅ Incluye vuelos + hotel + traslados + asistencia
+¿Te interesa? Respondé este mensaje y te cuento todo 👇
+
+REGLAS generales:
+- Emojis reales: ✈️ 🏨 🌴 🏖️ 🗓️ 💰 🎉 🌟 ⭐ 🚌 🔥 👉 📲
 - NUNCA uses ◆ ◇ ► ▶ ● ni caracteres geométricos
 - Si no hay fecha, omitir la línea de SALIDA. Si no hay precio, omitir la línea de VALOR.
-- Estilo: rioplatense, entusiasta, máximo 200 palabras por red.`
+- Estilo rioplatense, entusiasta. Facebook/Instagram: máx 200 palabras.`
 
     const textResponse = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -252,6 +258,7 @@ REGLAS:
       searchQuery:   toStr(flyer.searchQuery) || toStr(flyer.destination),
       textFacebook:  toStr(texts.facebook),
       textInstagram: toStr(texts.instagram),
+      textWhatsapp:  toStr(texts.whatsapp),
       images,
       isPro: isProUser,
       usedCount,
