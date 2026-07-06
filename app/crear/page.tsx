@@ -362,17 +362,22 @@ export default function Home() {
 
   // Genera imagen compuesta (foto + filtro + overlay) como dataURL
   const generateOverlayCanvas = async (): Promise<string> => {
+    // Esperar que TODAS las fuentes del documento estén listas primero
+    await document.fonts.ready
+
     // Next.js asigna un nombre interno a las fuentes (ej: __Unbounded_abc123).
     // Leemos el valor real del CSS custom property que genera next/font/google.
-    // Next.js setea --font-unbounded en <body>, no en <html>, por eso hay que leerlo de body
     const cssFontFamily = getComputedStyle(document.body)
       .getPropertyValue('--font-unbounded').trim()
     const CANVAS_FONT = cssFontFamily || 'Unbounded'
 
-    // Forzar carga de la fuente antes de dibujar en canvas
+    // Forzar carga en todos los pesos y tamaños que usamos
     try {
-      await document.fonts.load(`900 96px ${CANVAS_FONT}`)
-      await document.fonts.load(`700 40px ${CANVAS_FONT}`)
+      await Promise.all([
+        document.fonts.load(`900 96px ${CANVAS_FONT}`),
+        document.fonts.load(`700 40px ${CANVAS_FONT}`),
+        document.fonts.load(`900 48px ${CANVAS_FONT}`),
+      ])
     } catch { /* Si falla, usa fallback */ }
 
     return new Promise((resolve, reject) => {
@@ -1422,10 +1427,12 @@ export default function Home() {
                   <div className="mt-4 flex items-start gap-3 bg-pink-50 border border-pink-200 rounded-2xl p-4 animate-fade-up">
                     <span className="text-xl">📋</span>
                     <div>
-                      <p className="text-sm font-black text-pink-700">Texto copiado al portapapeles</p>
-                      <p className="text-xs text-pink-500 mt-0.5 leading-snug">
-                        Instagram no acepta texto automático. Una vez que subas la foto,<br/>
-                        <strong>pegá el texto en el pie de foto</strong> con mantener presionado → Pegar.
+                      <p className="text-sm font-black text-pink-700">Texto copiado — pegalo ANTES de publicar</p>
+                      <p className="text-xs text-pink-500 mt-1 leading-relaxed">
+                        1. Instagram abre con la foto lista.<br/>
+                        2. Tocá <strong>"Escribir un pie de foto…"</strong><br/>
+                        3. Mantené presionado → <strong>Pegar</strong><br/>
+                        4. Recién ahí tocá <strong>Compartir</strong>.
                       </p>
                     </div>
                   </div>
