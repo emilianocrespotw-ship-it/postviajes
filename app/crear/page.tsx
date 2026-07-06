@@ -1891,5 +1891,4 @@ function StepProgress({ activeStep }: { activeStep: number }) {
   )
 }
 
-// BUG-18: FlyerOverlay removido — era código muerto (nunca se usaba en el JSX)
-digo muerto (nunca se usaba en el JSX)
+// BUG-18: FlyerOverlay removido (dead code - never used in JSX)
