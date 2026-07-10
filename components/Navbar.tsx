@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
 
@@ -15,6 +16,10 @@ function Logo() {
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
+  const pathname = usePathname()
+
+  // /crear tiene su propio header fixed — el Navbar del layout causaría doble header en mobile
+  if (pathname === '/crear') return null
 
   const navLinks = [
     { name: 'Cómo funciona', href: '/#como-funciona' },
