@@ -1300,7 +1300,24 @@ export default function Home() {
 
                 {/* Botón elegir */}
                 <button
-                  onClick={() => { setSelectedPhoto(currentPhoto); setCurrentStep(4); goTo('style', 'left') }}
+                  onClick={() => {
+                    setSelectedPhoto(currentPhoto)
+                    setCurrentStep(4)
+                    goTo('style', 'left')
+                    // Trackear selección para aprendizaje futuro (fire & forget)
+                    if (currentPhoto && result?.destination) {
+                      fetch('/api/photo-selection', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          destination: result.destination,
+                          photoUrl: currentPhoto.url,
+                          source: currentPhoto.source,
+                          photographer: currentPhoto.photographer,
+                        }),
+                      }).catch(() => {/* no bloquear si falla */})
+                    }
+                  }}
                   className="w-full py-4 rounded-2xl font-black text-lg bg-white text-black hover:bg-white/90 transition flex items-center justify-center gap-2 shadow-xl"
                 >
                   Elegir esta foto →

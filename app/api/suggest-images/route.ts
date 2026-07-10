@@ -52,6 +52,35 @@ async function fetchPersonalPhotos(destination: string): Promise<any[]> {
     return []
   }
 }
+// ── Fotos aprendidas por selección del usuario ───────────────────────────────
+async function fetchLearnedPhotos(destination: string): Promise<any[]> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return []
+  const destLower = destination.toLowerCase().trim()
+  if (!destLower) return []
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('photo_selections')
+      .select('photo_url, source, photographer, selected_count')
+      .ilike('destination', `%${destLower}%`)
+      .order('selected_count', { ascending: false })
+      .limit(6)
+
+    if (error || !data) return []
+
+    return data.map((p: any) => ({
+      id: `learned-${p.photo_url.slice(-12)}`,
+      url: p.photo_url,
+      thumbnail: p.photo_url,
+      photographer: p.photographer || '',
+      photographerUrl: null,
+      source: p.source || 'Learned',
+    }))
+  } catch {
+    return []
+  }
+}
+
 // ── Landmark keywords por destino ────────────────────────────────────────────
 // Queries específicas con nombres de lugares tal como los etiquetan los fotógrafos
 // en Unsplash/Pexels — cuanto más específico el landmark, mejor la foto.
@@ -253,9 +282,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Falta el parámetro q' }, { status: 400 })
   }
 
-  // ── 1. Buscar fotos personales en Supabase (máx 6) ──────────────────────────
+  // ── 1a. Fotos personales en Supabase (máx 6) ─────────────────────────────────
   const personalPhotos = await fetchPersonalPhotos(destination)
   const personal6 = personalPhotos.sort(() => Math.random() - 0.5).slice(0, 6)
+
+  // ── 1b. Fotos previamente elegidas para este destino (aprendizaje) ────────────
+  const learnedPhotos = await fetchLearnedPhotos(destination)
 
   // ── 2. Construir query para Pexels/Unsplash (siempre al menos 4) ─────────────
   const primaryQuery = getEnhancedQuery(q, destination)
@@ -286,8 +318,19 @@ export async function GET(req: NextRequest) {
     externalImages = [...externalImages, ...fallback.filter(i => !existingIds.has(i.id))]
   }
 
-  // ── 4. Combinar: máx 6 personales + resto externas hasta 30 ─────────────────
-  const allImages = [...personal6, ...externalImages]
+  // ── 4. Combinar: aprendidas → personales → externas (sin duplicados, hasta 30) ─
+  const seenUrls = new Set<string>()
+  const dedup = (arr: any[]) => arr.filter(p => {
+    if (seenUrls.has(p.url)) return false
+    seenUrls.add(p.url)
+    return true
+  })
+
+  const allImages = [
+    ...dedup(learnedPhotos),   // fotos ya elegidas antes: al tope
+    ...dedup(personal6),       // fotos personales
+    ...dedup(externalImages),  // Pexels + Unsplash (Unsplash ya ordenado por likes)
+  ]
 
   if (allImages.length === 0) {
     return NextResponse.json({ error: 'No se encontraron imágenes' }, { status: 500 })
@@ -321,12 +364,15 @@ async function fetchUnsplash(query: string, perPage = 10) {
   const res = await fetch(url, { headers: { Authorization: `Client-ID ${key}` } })
   if (!res.ok) throw new Error(`Unsplash ${res.status}`)
   const data = await res.json()
-  return (data.results || []).map((p: any) => ({
-    id: `unsplash-${p.id}`,
-    url: p.urls.full,
-    thumbnail: p.urls.regular,
-    photographer: p.user.name,
-    photographerUrl: p.user.links.html,
-    source: 'Unsplash',
-  }))
+  return (data.results || [])
+    .sort((a: any, b: any) => (b.likes ?? 0) - (a.likes ?? 0))  // mejores fotos primero
+    .map((p: any) => ({
+      id: `unsplash-${p.id}`,
+      url: p.urls.full,
+      thumbnail: p.urls.regular,
+      photographer: p.user.name,
+      photographerUrl: p.user.links.html,
+      source: 'Unsplash',
+      likes: p.likes ?? 0,
+    }))
 }
